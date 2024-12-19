@@ -27,7 +27,7 @@ exports.signin = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (!user) {
-            return res.status(400).json({ error: 'Email tidak ditemukan' });
+            return res.status(400).json({ error: 'Email  yang kamu input tidak ditemukan' });
         }
         if (user.password !== password) {
             return res.status(400).json({ error: 'Password salah' });
