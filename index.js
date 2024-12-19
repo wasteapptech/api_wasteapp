@@ -11,7 +11,7 @@ app.use(cors({ origin: '*' }));
 
 app.get("/", (req, res) => {
     res.send({
-        message: "Api Wasteapp Telkom University",
+        message: "Api Wasteapp",
         author: "https://github.com/wasteapptech/wasteapp_flutterapp",
     });
 });

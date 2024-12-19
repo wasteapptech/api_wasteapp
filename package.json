@@ -1,7 +1,7 @@
 {
   "name": "backend-apiwasteapp",
   "version": "1.0.0",
-  "description": "backedn apiwasteapp",
+  "description": "backedn_apiwasteapp",
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
