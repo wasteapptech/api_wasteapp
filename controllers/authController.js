@@ -2,32 +2,39 @@ const User = require('../models/user');
 
 exports.signup = async (req, res) => {
     try {
-        console.log('Request body:', req.body);
-        const { name, email, password } = req.body;  
+        console.log('Request body:', req.body); // Check the incoming data
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Name, email, and password are required' });
+        }
+
         const existingUser = await User.findOne({ email });
 
         if (existingUser) {
-            return res.status(400).json({ error: 'User ini sudah terdaftar' });
+            return res.status(400).json({ error: 'User already exists' });
         }
 
-        const user = new User({ name, email, password });  
+        const user = new User({ name, email, password });
         await user.save();
 
-        res.status(201).json({ message: 'User ini berhasil terdaftar' });
+        res.status(201).json({ message: 'User successfully registered' });
     } catch (error) {
-        res.status(500).json({ error: 'Signup gagal, silahkan coba lagi' });
+        console.error('Error:', error);  // Log the error for debugging
+        res.status(500).json({ error: 'Signup failed, please try again' });
     }
 };
+
 
 
 exports.signin = async (req, res) => {
     try {
         console.log('Request body:', req.body);
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const { name, password } = req.body;
+        const user = await User.findOne({ name });
 
         if (!user) {
-            return res.status(400).json({ error: 'Email  yang kamu input tidak ditemukan' });
+            return res.status(400).json({ error: 'username yang kamu input tidak ditemukan' });
         }
         if (user.password !== password) {
             return res.status(400).json({ error: 'Password salah' });

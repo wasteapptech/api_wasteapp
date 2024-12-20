@@ -22,7 +22,7 @@ app.use('/api/user', userRoutes);
 
 app.use((req, res, next) => {
     res.status(404).send({
-        message: "Where are you going?",
+        message: "Where are you goingg?",
     });
 });
 
