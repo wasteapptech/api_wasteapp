@@ -2,6 +2,7 @@ const express = require('express');
 const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const surveyRoutes = require('./routes/survey');
 const cors = require('cors');
 
 const app = express();
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/submit/', surveyRoutes);
 
 
 app.use((req, res, next) => {

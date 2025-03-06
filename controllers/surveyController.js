@@ -1,4 +1,5 @@
 const Survey = require('../models/survey');
+const User = require('../models/user');
 
 // Mengirim jawaban survei
 exports.submitSurvey = async (req, res) => {
@@ -49,28 +50,5 @@ exports.getSurvey = async (req, res) => {
         res.json(survey);
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve survey' });
-    }
-};
-
-// Mendapatkan jawaban survei yang belum selesai
-
-exports.getIncompleteSurveys = async (req, res) => {
-    try {
-        const { email } = req.query;
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const incompleteSurveys = await Survey.find({ user: user._id, completed: false });
-
-        if (!incompleteSurveys.length) {
-            return res.status(404).json({ error: 'No incomplete surveys found' });
-        }
-
-        res.json(incompleteSurveys);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to retrieve incomplete surveys' });
     }
 };
