@@ -6,21 +6,19 @@ exports.submitSurvey = async (req, res) => {
     try {
         const { email, answers } = req.body;
 
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        let survey = await Survey.findOne({ user: user._id });
+        // Check if a survey already exists for this email
+        let survey = await Survey.findOne({ email });
 
         if (survey) {
+            // Update existing survey
             survey.answers = answers;
             survey.completed = true;
         } else {
+            // Create a new survey
             survey = new Survey({
-                user: user._id,
+                email,
                 answers,
-                completed: true
+                completed: true,
             });
         }
 
@@ -36,12 +34,8 @@ exports.getSurvey = async (req, res) => {
     try {
         const { email } = req.query;
 
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const survey = await Survey.findOne({ user: user._id });
+        // Find the survey by email
+        const survey = await Survey.findOne({ email });
 
         if (!survey || !survey.completed) {
             return res.status(404).json({ error: 'Survey not found or not completed' });
