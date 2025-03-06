@@ -1,5 +1,6 @@
 const User = require('../models/user');
 
+
 exports.getUserProfile = async (req, res) => {
   try {
     const { email } = req.query;
