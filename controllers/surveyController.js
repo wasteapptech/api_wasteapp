@@ -46,3 +46,26 @@ exports.getSurvey = async (req, res) => {
         res.status(500).json({ error: 'Failed to retrieve survey' });
     }
 };
+
+exports.checkSurveyStatus = async (req, res) => {
+    try {
+        const { email } = req.params;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+        
+        const survey = await Survey.findOne({ email });
+        
+        if (survey) {
+            return res.status(200).json({ 
+                completed: survey.completed,
+                timestamp: survey.updatedAt 
+            });
+        } else {
+            return res.status(200).json({ completed: false });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to check survey status' });
+    }
+};
