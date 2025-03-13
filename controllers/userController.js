@@ -2,18 +2,22 @@ const User = require('../models/user');
 
 
 exports.getUserProfile = async (req, res) => {
-  try {
-    const { email } = req.query;
-    const user = await User.findOne({ email }).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+ try {
+        const { name } = req.query; // Ambil parameter name dari query
+        const user = await User.findOne({ name });
 
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: 'Retrieve profile failed' });
-  }
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            name: user.name,
+            email: user.email,
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Failed to fetch user profile' });
+    }
 };
 
 exports.updateUserProfile = async (req, res) => {
