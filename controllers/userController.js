@@ -21,25 +21,27 @@ exports.getUserProfile = async (req, res) => {
 };
 
 exports.updateUserProfile = async (req, res) => {
-  try {
-    const { email, newEmail, name } = req.body;
+   try {
+    const { email, name, newEmail } = req.body;
 
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (newEmail) {
-      user.email = newEmail;
     }
 
     if (name) {
       user.name = name;
     }
+    if (newEmail) {
+      user.email = newEmail;
+    }
 
     await user.save();
-    res.json({ message: 'Profile updated successfully' });
+
+    res.status(200).json({ message: 'Profile updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Update failed' });
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 };
