@@ -24,13 +24,11 @@ exports.updateUserProfile = async (req, res) => {
   try {
     const { email, newEmail, name } = req.body;
 
-    // Cari pengguna berdasarkan email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Update data pengguna
     if (newEmail) {
       user.email = newEmail;
     }
@@ -40,7 +38,7 @@ exports.updateUserProfile = async (req, res) => {
     }
 
     await user.save();
-    res.json({ message: 'Profile updated successfully', user });
+    res.json({ message: 'Profile updated successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Update failed' });
   }
