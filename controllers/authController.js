@@ -56,22 +56,21 @@ exports.signin = async (req, res) => {
 
 
 exports.forgotPassword = async (req, res) => {
-    try {
-        const { email, newPassword } = req.body;
-        const user = await User.findOne({ email });
+  try {
+    const { email, newPassword } = req.body;
 
-        if (!user) {
-            return res.status(404).json({ error: 'User ini tidak terdaftar' });
-        }
+    const user = await User.findOne({ email });
 
-        user.password = newPassword;
-        await user.save();
-
-        res.json({ 
-            message: 'Password baru berhasil terdaftar',
-            user: { name: user.name, email: user.email }, // Mengembalikan nama pengguna dalam respons
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Kesalahan mengupdate password' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
 };
