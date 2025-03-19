@@ -28,7 +28,7 @@ app.use('/api/submit/', surveyRoutes);
 
 app.use((req, res, next) => {
     res.status(404).send({
-        message: "Where are you goingg?",
+        message: "Where are you goingg mann?",
     });
 });
 
