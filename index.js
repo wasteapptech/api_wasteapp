@@ -10,8 +10,6 @@ const Admin = require("./models/admin");
 const app = express();
 
 connectDB().then(async () => {
-    console.log("MongoDB Connected");
-
     try {
         const adminExists = await Admin.findOne({ username: "admin" });
         if (!adminExists) {
