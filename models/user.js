@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    profileImageUrl: {
+        type: String, // Menyimpan URL gambar profil
+        default: null, // Default null jika belum ada gambar
+    },
 });
 
 module.exports = mongoose.model('User', userSchema);
