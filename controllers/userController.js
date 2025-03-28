@@ -22,14 +22,22 @@ exports.getUserProfile = async (req, res) => {
 
 exports.updateUserProfile = async (req, res) => {
   try {
-    const { currentEmail, newEmail, name } = req.body;
+    const { currentName, newName, newEmail } = req.body;
 
-    const user = await User.findOne({ email: currentEmail });
+    // 1. Find user by current name (username)
+    const user = await User.findOne({ name: currentName });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (newEmail && newEmail !== currentEmail) {
+    // 2. Update name if provided
+    if (newName) {
+      user.name = newName;
+    }
+
+    // 3. Update email if provided
+    if (newEmail) {
+      // Check if email already exists
       const emailExists = await User.findOne({ email: newEmail });
       if (emailExists) {
         return res.status(400).json({ error: 'Email already in use' });
@@ -37,21 +45,23 @@ exports.updateUserProfile = async (req, res) => {
       user.email = newEmail;
     }
 
-    if (name && name !== user.name) {
-      user.name = name;
-    }
-
     await user.save();
-    const updatedUser = await User.findById(user._id).select('-password');
+
+    // Return updated user data
+    const updatedUser = {
+      name: user.name,
+      email: user.email
+      // other fields...
+    };
+    
     res.json({
       message: 'Profile updated successfully',
       user: updatedUser
     });
 
   } catch (error) {
-    console.error('Update profile error:', error);
     res.status(500).json({ 
-      error: 'Profile update failed',
+      error: 'Update failed',
       details: error.message 
     });
   }
