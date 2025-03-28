@@ -15,12 +15,13 @@ exports.tambahKegiatan = async (req, res) => {
 // Ambil Semua Kegiatan 
 exports.getKegiatan = async (req, res) => {
     try {
-        const kegiatanList = await Kegiatan.find().sort({ createdAt: -1 }); 
+        const kegiatanList = await Kegiatan.find().sort({ _id: -1 }); 
         res.json(kegiatanList);
     } catch (err) {
         res.status(500).json({ message: "Gagal mengambil kegiatan" });
     }
 };
+
 
 //  Update Kegiatan
 exports.updateKegiatan = async (req, res) => {
