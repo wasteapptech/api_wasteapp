@@ -1,9 +1,12 @@
 const mongoose = require("mongoose");
 
-const KegiatanSchema = new mongoose.Schema({
-    nama: { type: String, required: true },
-    tanggal: { type: String, required: true },
-    deskripsi: { type: String, required: true }
-});
+const kegiatanSchema = new mongoose.Schema(
+    {
+        nama: { type: String, required: true },
+        tanggal: { type: String, required: true },
+        deskripsi: { type: String, required: true }
+    },
+    { timestamps: true }
+);
 
-module.exports = mongoose.model("Kegiatan", KegiatanSchema);
+module.exports = mongoose.model("Kegiatan", kegiatanSchema);
