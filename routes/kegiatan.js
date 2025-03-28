@@ -3,7 +3,9 @@ const { tambahKegiatan, getKegiatan } = require("../controllers/kegiatanControll
 
 const router = express.Router();
 
-router.post("/", tambahKegiatan);
-router.get("/", getKegiatan);
+router.post("/", tambahKegiatan); 
+router.get("/", getKegiatan); 
+router.put("/:id", updateKegiatan); 
+router.delete("/:id", hapusKegiatan); 
 
 module.exports = router;
