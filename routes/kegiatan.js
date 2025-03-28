@@ -1,5 +1,5 @@
 const express = require("express");
-const { tambahKegiatan, getKegiatan } = require("../controllers/kegiatanController");
+const { tambahKegiatan, getKegiatan, updateKegiatan, hapusKegiatan } = require("../controllers/kegiatanController");
 
 const router = express.Router();
 
