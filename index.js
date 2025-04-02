@@ -1,12 +1,13 @@
 const express = require('express');
-const connectDB = require('./config/database');
+const connectDB = require('./config/mongodb');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const surveyRoutes = require('./routes/survey');
 const adminRoutes = require("./routes/admin");
-const kegiatanRoutes = require("./routes/kegiatan");
-
-
+const { initCronJobs } = require('./utils/cronJobs');
+const kegiatanRoutes = require('./routes/kegiatan');
+const newsRoutes = require('./routes/news');
+const notificationRoutes = require('./routes/notification');
 const app = express();
 connectDB();
 app.use(express.json());
@@ -28,7 +29,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/submit/', surveyRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/kegiatan", kegiatanRoutes);
+app.use('/api/kegiatan', kegiatanRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/notification', notificationRoutes);
+
 
 app.use((req, res, next) => {
     res.status(404).send({
@@ -37,4 +41,7 @@ app.use((req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port http://localhost:${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server running on port http://localhost:${PORT}`);
+    initCronJobs();
+});

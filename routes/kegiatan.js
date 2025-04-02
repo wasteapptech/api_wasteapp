@@ -1,11 +1,20 @@
-const express = require("express");
-const { tambahKegiatan, getKegiatan, updateKegiatan, hapusKegiatan } = require("../controllers/kegiatanController");
-
+const express = require('express');
 const router = express.Router();
+const kegiatanController = require('../controllers/kegiatanController');
 
-router.post("/", tambahKegiatan); 
-router.get("/", getKegiatan); 
-router.put("/:id", updateKegiatan); 
-router.delete("/:id", hapusKegiatan); 
+// Get semua kegiatan
+router.get('/', kegiatanController.getAllKegiatan);
+
+// Tambah kegiatan baru
+router.post('/', kegiatanController.createKegiatan);
+
+// Get kegiatan by ID
+router.get('/:id', kegiatanController.getKegiatanById);
+
+// Update kegiatan
+router.put('/:id', kegiatanController.updateKegiatan);
+
+// Delete kegiatan
+router.delete('/:id', kegiatanController.deleteKegiatan);
 
 module.exports = router;

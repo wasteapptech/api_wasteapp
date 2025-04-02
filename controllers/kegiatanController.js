@@ -1,62 +1,92 @@
-const Kegiatan = require("../models/kegiatan");
+const kegiatanService = require('../services/kegiatanService');
+const notificationService = require('../services/notificationService');
 
-// Tambah Kegiatan
-exports.tambahKegiatan = async (req, res) => {
-    const { nama, tanggal, deskripsi } = req.body;
-    try {
-        const kegiatanBaru = new Kegiatan({ nama, tanggal, deskripsi });
-        await kegiatanBaru.save();
-        res.status(201).json({ message: "Kegiatan berhasil ditambahkan", kegiatan: kegiatanBaru });
-    } catch (err) {
-        res.status(500).json({ message: "Gagal menambahkan kegiatan" });
-    }
+// Get semua kegiatan
+exports.getAllKegiatan = async (req, res) => {
+  try {
+    const kegiatanArray = await kegiatanService.getAllKegiatan();
+    res.status(200).json(kegiatanArray);
+  } catch (error) {
+    console.error('Error fetching kegiatan:', error);
+    res.status(500).json({ error: 'Gagal memuat kegiatan' });
+  }
 };
 
-// Ambil Semua Kegiatan (sorted by _id descending)
-exports.getKegiatan = async (req, res) => {
-    try {
-        const kegiatanList = await Kegiatan.find().sort({ _id: -1 }); 
-        res.json(kegiatanList);
-    } catch (err) {
-        res.status(500).json({ message: "Gagal mengambil kegiatan" });
+// Get kegiatan by ID
+exports.getKegiatanById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const kegiatan = await kegiatanService.getKegiatanById(id);
+    
+    if (!kegiatan) {
+      return res.status(404).json({ error: 'Kegiatan tidak ditemukan' });
     }
+    
+    res.status(200).json(kegiatan);
+  } catch (error) {
+    console.error('Error fetching kegiatan by ID:', error);
+    res.status(500).json({ error: 'Gagal memuat kegiatan' });
+  }
 };
 
-// Update Kegiatan
+// Tambah kegiatan baru
+exports.createKegiatan = async (req, res) => {
+  try {
+    const newKegiatan = req.body;
+    
+    // Validasi data
+    if (!newKegiatan.judul || !newKegiatan.deskripsi) {
+      return res.status(400).json({ error: 'Judul dan deskripsi diperlukan' });
+    }
+    
+    // Simpan ke Firebase
+    const result = await kegiatanService.createKegiatan(newKegiatan);
+    
+    // Kirim notifikasi ke semua device terdaftar
+    await notificationService.sendNotificationToAllDevices(
+      'Kegiatan Baru', 
+      newKegiatan.judul
+    );
+    
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Error creating kegiatan:', error);
+    res.status(500).json({ error: 'Gagal menambahkan kegiatan' });
+  }
+};
+
+// Update kegiatan
 exports.updateKegiatan = async (req, res) => {
+  try {
     const { id } = req.params;
-    const { nama, tanggal, deskripsi } = req.body;
-
-    try {
-        const kegiatanUpdate = await Kegiatan.findByIdAndUpdate(
-            id,
-            { nama, tanggal, deskripsi },
-            { new: true }
-        );
-
-        if (!kegiatanUpdate) {
-            return res.status(404).json({ message: "Kegiatan tidak ditemukan" });
-        }
-
-        res.json({ message: "Kegiatan berhasil diperbarui", kegiatan: kegiatanUpdate });
-    } catch (err) {
-        res.status(500).json({ message: "Gagal memperbarui kegiatan" });
+    const updateData = req.body;
+    
+    const result = await kegiatanService.updateKegiatan(id, updateData);
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Kegiatan tidak ditemukan' });
     }
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error updating kegiatan:', error);
+    res.status(500).json({ error: 'Gagal mengupdate kegiatan' });
+  }
 };
 
-// Hapus Kegiatan
-exports.hapusKegiatan = async (req, res) => {
+// Delete kegiatan
+exports.deleteKegiatan = async (req, res) => {
+  try {
     const { id } = req.params;
-
-    try {
-        const kegiatanHapus = await Kegiatan.findByIdAndDelete(id);
-
-        if (!kegiatanHapus) {
-            return res.status(404).json({ message: "Kegiatan tidak ditemukan" });
-        }
-
-        res.json({ message: "Kegiatan berhasil dihapus" });
-    } catch (err) {
-        res.status(500).json({ message: "Gagal menghapus kegiatan" });
+    const success = await kegiatanService.deleteKegiatan(id);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Kegiatan tidak ditemukan' });
     }
+    
+    res.status(200).json({ success: true, message: 'Kegiatan berhasil dihapus' });
+  } catch (error) {
+    console.error('Error deleting kegiatan:', error);
+    res.status(500).json({ error: 'Gagal menghapus kegiatan' });
+  }
 };
