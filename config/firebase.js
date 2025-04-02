@@ -5,9 +5,13 @@ const path = require('path');
 const serviceAccount = require(path.join(__dirname, '../serviceAccountKey.json'));
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://wasteappcore-default-rtdb.firebaseio.com/" 
-});
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'), // Important for line breaks
+    }),
+    databaseURL: process.env.FIREBASE_DATABASE_URL
+  });
 
 const db = admin.database();
 
