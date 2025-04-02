@@ -35,12 +35,12 @@ exports.sendNotificationToAllDevices = async (title, body) => {
         }
 
         // The fix: messaging() is already initialized, and sendMulticast expects a message object directly
-        const message = {
+        const multicastMessage = {
             notification: { title, body },
             tokens: tokens.slice(0, 500) // FCM allows maximum 500 tokens per request
         };
 
-        const response = await messaging.sendMulticast(message);
+        const response = await messaging().sendMulticast(multicastMessage);
 
         return {
             success: true,
