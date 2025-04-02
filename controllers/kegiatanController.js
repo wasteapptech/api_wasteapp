@@ -32,28 +32,35 @@ exports.getKegiatanById = async (req, res) => {
 // Tambah kegiatan baru
 exports.createKegiatan = async (req, res) => {
   try {
-    const newKegiatan = req.body;
-    
+    const { judul, deskripsi, tanggal } = req.body;
+
     // Validasi data
-    if (!newKegiatan.judul || !newKegiatan.deskripsi) {
-      return res.status(400).json({ error: 'Judul dan deskripsi diperlukan' });
+    if (!judul || !deskripsi || !tanggal) {
+      return res.status(400).json({ error: 'Judul, deskripsi, dan tanggal diperlukan' });
     }
-    
+
+    // Pastikan format tanggal valid (opsional)
+    if (isNaN(Date.parse(tanggal))) {
+      return res.status(400).json({ error: 'Format tanggal tidak valid' });
+    }
+
     // Simpan ke Firebase
+    const newKegiatan = { judul, deskripsi, tanggal };
     const result = await kegiatanService.createKegiatan(newKegiatan);
-    
+
     // Kirim notifikasi ke semua device terdaftar
     await notificationService.sendNotificationToAllDevices(
       'Kegiatan Baru', 
-      newKegiatan.judul
+      `${judul} - ${tanggal}`
     );
-    
+
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating kegiatan:', error);
     res.status(500).json({ error: 'Gagal menambahkan kegiatan' });
   }
 };
+
 
 // Update kegiatan
 exports.updateKegiatan = async (req, res) => {
