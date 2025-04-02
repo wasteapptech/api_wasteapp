@@ -1,4 +1,4 @@
-const { db, messaging } = require('../config/firebase');
+const { db, admin } = require('../config/firebase');
 const admin = require("firebase-admin");
 
 exports.registerDeviceToken = async (token) => {
