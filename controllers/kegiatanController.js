@@ -2,13 +2,14 @@ const kegiatanService = require('../services/kegiatanService');
 const notificationService = require('../services/notificationService');
 
 // Get semua kegiatan
-exports.getAllKegiatan = async (req, res) => {
+exports.getAllKegiatan = async () => {
   try {
-    const kegiatanArray = await kegiatanService.getAllKegiatan();
-    res.status(200).json(kegiatanArray);
+    const snapshot = await db.collection('kegiatan')
+      .orderBy('tanggal', 'desc') 
+      .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error('Error fetching kegiatan:', error);
-    res.status(500).json({ error: 'Gagal memuat kegiatan' });
+    throw error;
   }
 };
 
