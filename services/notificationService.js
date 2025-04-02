@@ -1,16 +1,32 @@
 const { db, admin } = require('../config/firebase');
 
 // Register device token
-exports.registerDeviceToken = async (token) => {
-    const tokensRef = db.ref('tokens');
-    await tokensRef.child(token.replace(/[.#$/[\]]/g, '_')).set({
+// In your notificationController.js
+exports.registerToken = async (req, res) => {
+    try {
+      const { token } = req.body;
+      console.log('Received token:', token);
+  
+      if (!token) {
+        return res.status(400).json({ error: 'Token is required' });
+      }
+  
+      const tokensRef = admin.database().ref('tokens');
+      await tokensRef.child(token.replace(/[.#$/[\]]/g, '_')).set({
         token: token,
         createdAt: admin.database.ServerValue.TIMESTAMP
-    });
-
-    return true;
-};
-
+      });
+  
+      console.log('Token registered successfully');
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error registering token:', error);
+      res.status(500).json({ 
+        error: 'Failed to register token',
+        details: error.message 
+      });
+    }
+  };
 // Kirim notifikasi ke semua perangkat
 exports.sendNotificationToAllDevices = async (title, body) => {
     try {
