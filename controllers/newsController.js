@@ -1,6 +1,5 @@
 const newsService = require('../services/newsService');
 
-// Get semua berita
 exports.getAllNews = async (req, res) => {
     try {
         const newsArray = await newsService.getAllNews();
@@ -11,7 +10,6 @@ exports.getAllNews = async (req, res) => {
     }
 };
 
-// Trigger fetch berita dari API
 exports.fetchNewsFromAPI = async (req, res) => {
     try {
         const result = await newsService.fetchNewsAndUpdateDatabase();
