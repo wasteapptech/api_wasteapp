@@ -1,8 +1,6 @@
 const admin = require('firebase-admin');
 const path = require('path');
 
-// Inisialisasi Firebase Admin SDK
-const serviceAccount = require(path.join(__dirname, '../serviceAccountKey.json'));
 
 admin.initializeApp({
     credential: admin.credential.cert({
