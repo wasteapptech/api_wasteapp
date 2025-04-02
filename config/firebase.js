@@ -13,6 +13,5 @@ admin.initializeApp({
 });
 
 const db = admin.database();
-const messaging = admin.messaging(); // Initialize messaging service
 
-module.exports = { admin, db, messaging }; // Export messaging
+module.exports = { admin, db}; // Export messaging

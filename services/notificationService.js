@@ -1,4 +1,4 @@
-const { db, admin, messaging } = require('../config/firebase');
+const { db, admin } = require('../config/firebase');
 
 exports.registerDeviceToken = async (token) => {
   try {
@@ -34,18 +34,32 @@ exports.sendNotificationToAllDevices = async (title, body) => {
             return { success: false, message: 'No device tokens available' };
         }
 
-        const multicastMessage = {
-            notification: { title, body },
-            tokens: tokens.slice(0, 500) // FCM allows maximum 500 tokens per request
+        // Create the message
+        const message = {
+            notification: {
+                title: title,
+                body: body
+            }
         };
 
-        // Use the imported messaging, not messaging()
-        const response = await messaging.sendMulticast(multicastMessage);
+        // Send to each token individually instead of using multicast
+        const sendPromises = tokens.slice(0, 500).map(token => {
+            return admin.messaging().send({
+                ...message,
+                token: token // Send to individual token
+            }).catch(error => {
+                console.log('Error sending to token:', error);
+                return false; // Continue with other tokens even if one fails
+            });
+        });
+
+        const results = await Promise.all(sendPromises);
+        const successCount = results.filter(result => result !== false).length;
 
         return {
             success: true,
-            successCount: response.successCount,
-            failureCount: response.failureCount
+            successCount: successCount,
+            failureCount: tokens.length - successCount
         };
     } catch (error) {
         console.error('Error sending notifications:', error);
