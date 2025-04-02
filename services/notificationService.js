@@ -21,7 +21,6 @@ exports.registerDeviceToken = async (token) => {
   }
 };
 
-
 exports.sendNotificationToAllDevices = async (title, body) => {
     try {
         const snapshot = await db.ref('tokens').once('value');
@@ -35,13 +34,19 @@ exports.sendNotificationToAllDevices = async (title, body) => {
             return { success: false, message: 'No device tokens available' };
         }
 
-        // Use the imported messaging service
-        const response = await messaging.sendMulticast({
+        // The fix: messaging() is already initialized, and sendMulticast expects a message object directly
+        const message = {
             notification: { title, body },
-            tokens: tokens.slice(0, 500)
-        });
+            tokens: tokens.slice(0, 500) // FCM allows maximum 500 tokens per request
+        };
 
-        // ... rest of your existing code ...
+        const response = await messaging.sendMulticast(message);
+
+        return {
+            success: true,
+            successCount: response.successCount,
+            failureCount: response.failureCount
+        };
     } catch (error) {
         console.error('Error sending notifications:', error);
         throw error;
