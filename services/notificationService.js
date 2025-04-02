@@ -1,9 +1,5 @@
 const { db, admin } = require('../config/firebase');
 
-// Register device token
-// In your notificationController.js
-const { db, admin } = require('../config/firebase');
-
 exports.registerDeviceToken = async (token) => {
   try {
     console.log('Registering token:', token);
