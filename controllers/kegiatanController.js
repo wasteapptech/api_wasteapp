@@ -4,7 +4,11 @@ const notificationService = require('../services/notificationService');
 // Get semua kegiatan
 exports.getAllKegiatan = async (req, res) => {
   try {
-    const kegiatanArray = await kegiatanService.getAllKegiatan();
+    let kegiatanArray = await kegiatanService.getAllKegiatan();
+
+    // Urutkan berdasarkan tanggal terbaru
+    kegiatanArray.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
     res.status(200).json(kegiatanArray);
   } catch (error) {
     console.error('Error fetching kegiatan:', error);
