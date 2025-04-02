@@ -43,11 +43,6 @@ exports.createKegiatan = async (req, res) => {
       return res.status(400).json({ error: 'Judul, deskripsi, dan tanggal diperlukan' });
     }
 
-    // Pastikan format tanggal valid (opsional)
-    if (isNaN(Date.parse(tanggal))) {
-      return res.status(400).json({ error: 'Format tanggal tidak valid' });
-    }
-
     // Simpan ke Firebase
     const newKegiatan = { judul, deskripsi, tanggal };
     const result = await kegiatanService.createKegiatan(newKegiatan);
@@ -55,7 +50,7 @@ exports.createKegiatan = async (req, res) => {
     // Kirim notifikasi ke semua device terdaftar
     await notificationService.sendNotificationToAllDevices(
       'Kegiatan Baru', 
-      `${judul} - ${tanggal}`
+      `${judul} diposting pada tanggal ${tanggal}`
     );
 
     res.status(201).json(result);
