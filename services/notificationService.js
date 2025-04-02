@@ -1,4 +1,4 @@
-const { db, admin } = require('../config/firebase');
+const { db, admin, messaging } = require('../config/firebase');
 
 exports.registerDeviceToken = async (token) => {
   try {
@@ -34,13 +34,13 @@ exports.sendNotificationToAllDevices = async (title, body) => {
             return { success: false, message: 'No device tokens available' };
         }
 
-        // The fix: messaging() is already initialized, and sendMulticast expects a message object directly
         const multicastMessage = {
             notification: { title, body },
             tokens: tokens.slice(0, 500) // FCM allows maximum 500 tokens per request
         };
 
-        const response = await messaging().sendMulticast(multicastMessage);
+        // Use the imported messaging, not messaging()
+        const response = await messaging.sendMulticast(multicastMessage);
 
         return {
             success: true,
