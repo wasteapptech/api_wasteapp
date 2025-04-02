@@ -1,4 +1,4 @@
-const { db, admin } = require('../config/firebase');
+const { db, messaging } = require('../config/firebase');
 
 exports.registerDeviceToken = async (token) => {
   try {
@@ -21,10 +21,9 @@ exports.registerDeviceToken = async (token) => {
   }
 };
 
-// Kirim notifikasi ke semua perangkat
+
 exports.sendNotificationToAllDevices = async (title, body) => {
     try {
-        // Ambil semua token FCM
         const snapshot = await db.ref('tokens').once('value');
         const tokens = [];
 
@@ -33,50 +32,16 @@ exports.sendNotificationToAllDevices = async (title, body) => {
         });
 
         if (tokens.length === 0) {
-            console.log('No device tokens available');
-            return {
-                success: false,
-                message: 'No device tokens available'
-            };
+            return { success: false, message: 'No device tokens available' };
         }
 
-        // Kirim notifikasi menggunakan Firebase Admin SDK
-        const message = {
-            notification: {
-                title: title,
-                body: body
-            },
-            tokens: tokens.slice(0, 500) // Maksimum 500 token per request
-        };
+        // Use the imported messaging service
+        const response = await messaging.sendMulticast({
+            notification: { title, body },
+            tokens: tokens.slice(0, 500)
+        });
 
-        const response = await admin.messaging().sendMulticast(message);
-        console.log(`${response.successCount} messages were sent successfully`);
-
-        // Hapus token yang tidak valid
-        if (response.failureCount > 0) {
-            const failedTokens = [];
-            response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    failedTokens.push(tokens[idx]);
-                }
-            });
-
-            // Remove failed tokens
-            await Promise.all(failedTokens.map(token =>
-                db.ref('tokens').orderByChild('token').equalTo(token).once('value')
-                    .then(snapshot => {
-                        snapshot.forEach(childSnapshot => {
-                            childSnapshot.ref.remove();
-                        });
-                    })
-            ));
-        }
-
-        return {
-            success: true,
-            successCount: response.successCount,
-            failureCount: response.failureCount
-        };
+        // ... rest of your existing code ...
     } catch (error) {
         console.error('Error sending notifications:', error);
         throw error;
