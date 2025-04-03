@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const kegiatanController = require('../controllers/kegiatanController');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const upload = require('../config/multerConfig'); // Pastikan path sesuai
 
-// Gunakan middleware ini di route Anda
+
 router.post('/', upload.single('gambar'), kegiatanController.createKegiatan);
 // Get semua kegiatan
 router.get('/', kegiatanController.getAllKegiatan);

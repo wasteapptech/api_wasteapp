@@ -3,6 +3,8 @@ const kegiatanService = require('../services/kegiatanService');
 const notificationService = require('../services/notificationService');
 
 
+
+
 // Konfigurasi Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -14,7 +16,7 @@ cloudinary.config({
 exports.createKegiatan = async (req, res) => {
   try {
     const { judul, deskripsi, tanggal } = req.body;
-    const file = req.file;
+    const file = req.file; // File sudah dalam memory buffer
 
     if (!judul || !deskripsi || !tanggal) {
       return res.status(400).json({ error: 'Judul, deskripsi, dan tanggal diperlukan' });
@@ -24,14 +26,21 @@ exports.createKegiatan = async (req, res) => {
 
     if (file) {
       try {
-        const uploadedResponse = await cloudinary.uploader.upload(file.path, {
+        // Convert buffer ke format yang bisa diupload ke Cloudinary
+        const uploadStr = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+        
+        const uploadedResponse = await cloudinary.uploader.upload(uploadStr, {
           folder: 'kegiatan-images',
           resource_type: 'auto'
         });
+        
         gambarUrl = uploadedResponse.secure_url;
       } catch (uploadError) {
-        console.error('Error uploading image to Cloudinary:', uploadError);
-        return res.status(500).json({ error: 'Gagal mengupload gambar' });
+        console.error('Error uploading to Cloudinary:', uploadError);
+        return res.status(500).json({ 
+          error: 'Gagal mengupload gambar ke Cloudinary',
+          details: uploadError.message
+        });
       }
     }
 
@@ -45,17 +54,19 @@ exports.createKegiatan = async (req, res) => {
 
     const result = await kegiatanService.createKegiatan(newKegiatan);
     
-    // Kirim notifikasi dengan gambar
     await notificationService.sendNotificationToAllDevices(
       'Kegiatan baru dari komunitas', 
       `${judul}\n${deskripsi}`,
-      gambarUrl // Kirim URL gambar sebagai parameter ketiga
+      gambarUrl
     );
 
     res.status(201).json(result);
   } catch (error) {
     console.error('Error creating kegiatan:', error);
-    res.status(500).json({ error: 'Gagal menambahkan kegiatan' });
+    res.status(500).json({ 
+      error: 'Gagal menambahkan kegiatan',
+      details: error.message 
+    });
   }
 };
 
