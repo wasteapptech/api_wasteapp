@@ -24,81 +24,100 @@ exports.registerDeviceToken = async (token) => {
 exports.sendNotificationToAllDevices = async (title, body, imageUrl = null) => {
     try {
         const snapshot = await db.ref('tokens').once('value');
-        const tokens = [];
-
-        snapshot.forEach(childSnapshot => {
-            tokens.push(childSnapshot.val().token);
-        });
+        const tokens = snapshot.val() ? Object.values(snapshot.val()).map(t => t.token) : [];
 
         if (tokens.length === 0) {
-            return { success: false, message: 'No device tokens available' };
+            console.log('Tidak ada device token terdaftar');
+            return { success: false, message: 'No registered devices' };
         }
 
-        // Base message configuration
+        console.log(`Sending notification with image: ${imageUrl}`);
+
+        // Base message structure
         const message = {
             notification: {
-                title: title,
-                body: body
+                title,
+                body,
+                imageUrl: imageUrl || undefined
             },
             data: {
-                // Data tambahan jika diperlukan
-                click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                title,
+                body,
+                imageUrl: imageUrl || ''
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    imageUrl: imageUrl || undefined,
+                    priority: 'high',
+                    visibility: 'public'
+                }
+            },
+            apns: {
+                headers: {
+                    'apns-priority': '10'
+                },
+                payload: {
+                    aps: {
+                        alert: {
+                            title,
+                            body
+                        },
+                        'mutable-content': 1,
+                        'content-available': 1
+                    }
+                },
+                fcm_options: {
+                    image: imageUrl || undefined
+                }
+            },
+            webpush: {
+                notification: {
+                    title,
+                    body,
+                    icon: imageUrl || undefined,
+                    image: imageUrl || undefined
+                },
+                headers: {
+                    Urgency: 'high'
+                }
             }
         };
 
-        // Tambahkan gambar jika ada
-        if (imageUrl) {
-            // Untuk Android
-            message.android = {
-                notification: {
-                    imageUrl: imageUrl
-                }
-            };
+        // Kirim ke semua device (dalam batch 500)
+        const batchSize = 500;
+        const batches = Math.ceil(tokens.length / batchSize);
+        let successCount = 0;
 
-            // Untuk iOS
-            message.apns = {
-                payload: {
-                    aps: {
-                        'mutable-content': 1
-                    },
-                    fcm_options: {
-                        image: imageUrl
-                    }
-                }
-            };
+        for (let i = 0; i < batches; i++) {
+            const batchTokens = tokens.slice(i * batchSize, (i + 1) * batchSize);
 
-            // Untuk web/other platforms
-            message.notification.image = imageUrl;
+            try {
+                const response = await admin.messaging().sendEachForMulticast({
+                    tokens: batchTokens,
+                    ...message
+                });
+                
+                successCount += response.successCount;
+                console.log(`Batch ${i+1} notification sent. Success: ${response.successCount}, Failure: ${response.failureCount}`);
+                
+                // Log failure details if any
+                if (response.failureCount > 0) {
+                    console.log('Failure details:', response.responses.filter(r => !r.success));
+                }
+            } catch (batchError) {
+                console.error(`Error batch ${i+1}:`, batchError);
+            }
         }
-
-        // Batasi pengiriman ke 500 device per batch (limit FCM)
-        const sendPromises = tokens.slice(0, 500).map(token => {
-            return admin.messaging().send({
-                ...message,
-                token: token
-            }).catch(error => {
-                console.log('Error sending to token:', token, error);
-                // Jika token tidak valid, hapus dari database
-                if (error.code === 'messaging/invalid-registration-token' || 
-                    error.code === 'messaging/registration-token-not-registered') {
-                    const sanitizedToken = token.replace(/[.#$/[\]]/g, '_');
-                    db.ref('tokens').child(sanitizedToken).remove();
-                }
-                return false;
-            });
-        });
-
-        const results = await Promise.all(sendPromises);
-        const successCount = results.filter(result => result !== false).length;
 
         return {
             success: true,
-            successCount: successCount,
-            failureCount: tokens.length - successCount,
-            imageIncluded: imageUrl !== null
+            sentCount: successCount,
+            totalDevices: tokens.length,
+            imageIncluded: !!imageUrl
         };
     } catch (error) {
-        console.error('Error sending notifications:', error);
+        console.error('Error in sendNotificationToAllDevices:', error);
         throw error;
     }
 };
