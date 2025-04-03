@@ -1,8 +1,65 @@
+const cloudinary = require('cloudinary').v2;
 const kegiatanService = require('../services/kegiatanService');
 const notificationService = require('../services/notificationService');
 
-// Get semua kegiatan
 
+// Konfigurasi Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Tambah kegiatan baru dengan upload gambar
+exports.createKegiatan = async (req, res) => {
+  try {
+    const { judul, deskripsi, tanggal } = req.body;
+    const file = req.file;
+
+    if (!judul || !deskripsi || !tanggal) {
+      return res.status(400).json({ error: 'Judul, deskripsi, dan tanggal diperlukan' });
+    }
+
+    let gambarUrl = null;
+
+    if (file) {
+      try {
+        const uploadedResponse = await cloudinary.uploader.upload(file.path, {
+          folder: 'kegiatan-images',
+          resource_type: 'auto'
+        });
+        gambarUrl = uploadedResponse.secure_url;
+      } catch (uploadError) {
+        console.error('Error uploading image to Cloudinary:', uploadError);
+        return res.status(500).json({ error: 'Gagal mengupload gambar' });
+      }
+    }
+
+    const newKegiatan = { 
+      judul, 
+      deskripsi, 
+      tanggal,
+      gambar: gambarUrl,
+      createdAt: new Date().toISOString()
+    };
+
+    const result = await kegiatanService.createKegiatan(newKegiatan);
+    
+    // Kirim notifikasi dengan gambar
+    await notificationService.sendNotificationToAllDevices(
+      'Kegiatan baru dari komunitas', 
+      `${judul}\n${deskripsi}`,
+      gambarUrl // Kirim URL gambar sebagai parameter ketiga
+    );
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error('Error creating kegiatan:', error);
+    res.status(500).json({ error: 'Gagal menambahkan kegiatan' });
+  }
+};
+
+// Get semua kegiatan
 exports.getAllKegiatan = async (req, res) => {
   try {
     let kegiatanArray = await kegiatanService.getAllKegiatan();
@@ -34,34 +91,6 @@ exports.getKegiatanById = async (req, res) => {
     res.status(500).json({ error: 'Gagal memuat kegiatan' });
   }
 };
-
-// Tambah kegiatan baru
-exports.createKegiatan = async (req, res) => {
-  try {
-    const { judul, deskripsi, tanggal } = req.body;
-
-    // Validasi data
-    if (!judul || !deskripsi || !tanggal) {
-      return res.status(400).json({ error: 'Judul, deskripsi, dan tanggal diperlukan' });
-    }
-
-    // Simpan ke Firebase
-    const newKegiatan = { judul, deskripsi, tanggal };
-    const result = await kegiatanService.createKegiatan(newKegiatan);
-
-    // Kirim notifikasi ke semua device terdaftar
-    await notificationService.sendNotificationToAllDevices(
-      'Kegiatan Baru', 
-      `${judul} diposting pada tanggal ${tanggal}`
-    );
-
-    res.status(201).json(result);
-  } catch (error) {
-    console.error('Error creating kegiatan:', error);
-    res.status(500).json({ error: 'Gagal menambahkan kegiatan' });
-  }
-};
-
 
 // Update kegiatan
 exports.updateKegiatan = async (req, res) => {

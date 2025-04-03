@@ -21,7 +21,7 @@ exports.registerDeviceToken = async (token) => {
     }
 };
 
-exports.sendNotificationToAllDevices = async (title, body) => {
+exports.sendNotificationToAllDevices = async (title, body, imageUrl = null) => {
     try {
         const snapshot = await db.ref('tokens').once('value');
         const tokens = [];
@@ -34,19 +34,57 @@ exports.sendNotificationToAllDevices = async (title, body) => {
             return { success: false, message: 'No device tokens available' };
         }
 
+        // Base message configuration
         const message = {
             notification: {
                 title: title,
                 body: body
+            },
+            data: {
+                // Data tambahan jika diperlukan
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
             }
         };
+
+        // Tambahkan gambar jika ada
+        if (imageUrl) {
+            // Untuk Android
+            message.android = {
+                notification: {
+                    imageUrl: imageUrl
+                }
+            };
+
+            // Untuk iOS
+            message.apns = {
+                payload: {
+                    aps: {
+                        'mutable-content': 1
+                    },
+                    fcm_options: {
+                        image: imageUrl
+                    }
+                }
+            };
+
+            // Untuk web/other platforms
+            message.notification.image = imageUrl;
+        }
+
+        // Batasi pengiriman ke 500 device per batch (limit FCM)
         const sendPromises = tokens.slice(0, 500).map(token => {
             return admin.messaging().send({
                 ...message,
-                token: token 
+                token: token
             }).catch(error => {
-                console.log('Error sending to token:', error);
-                return false; 
+                console.log('Error sending to token:', token, error);
+                // Jika token tidak valid, hapus dari database
+                if (error.code === 'messaging/invalid-registration-token' || 
+                    error.code === 'messaging/registration-token-not-registered') {
+                    const sanitizedToken = token.replace(/[.#$/[\]]/g, '_');
+                    db.ref('tokens').child(sanitizedToken).remove();
+                }
+                return false;
             });
         });
 
@@ -56,7 +94,8 @@ exports.sendNotificationToAllDevices = async (title, body) => {
         return {
             success: true,
             successCount: successCount,
-            failureCount: tokens.length - successCount
+            failureCount: tokens.length - successCount,
+            imageIncluded: imageUrl !== null
         };
     } catch (error) {
         console.error('Error sending notifications:', error);

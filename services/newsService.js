@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { db } = require('../config/firebase'); // Import from your firebase config
+const { db } = require('../config/firebase'); 
 
 const scrapeDetikSampahArticles = async () => {
     try {
@@ -10,11 +10,8 @@ const scrapeDetikSampahArticles = async () => {
 
         const articles = [];
 
-        // Scrape regular articles
         $('article').each((index, element) => {
             const $article = $(element);
-
-            // Skip photo articles
             if ($article.hasClass('foto_tag')) return;
 
             const title = $article.find('h2.title').text().trim();
@@ -38,7 +35,6 @@ const scrapeDetikSampahArticles = async () => {
             }
         });
 
-        // Scrape photo articles
         $('article.foto_tag .item').each((index, element) => {
             const $item = $(element);
             const title = $item.find('h2.title').text().trim();
