@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const kegiatanController = require('../controllers/kegiatanController');
-const upload = require('../config/multerConfig'); // Pastikan path sesuai
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
+// Post membuat kegiatan
 router.post('/', upload.single('gambar'), kegiatanController.createKegiatan);
 // Get semua kegiatan
 router.get('/', kegiatanController.getAllKegiatan);

@@ -3,8 +3,6 @@ const kegiatanService = require('../services/kegiatanService');
 const notificationService = require('../services/notificationService');
 
 
-
-
 // Konfigurasi Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
