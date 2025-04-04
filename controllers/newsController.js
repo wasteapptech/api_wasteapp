@@ -13,6 +13,16 @@ exports.getAllNews = async (req, res) => {
 exports.fetchNewsFromAPI = async (req, res) => {
     try {
         const result = await newsService.fetchNewsAndUpdateDatabase();
+        
+        // Optional: Send summary notification
+        if (result.newItems > 0) {
+            await notificationService.sendNotificationToAllDevices(
+                `${result.newItems} Berita Baru`,
+                'Ada berita terbaru yang tersedia!',
+                result.newItems[0]?.imageUrl // Use first item's image
+            );
+        }
+        
         res.status(200).json(result);
     } catch (error) {
         console.error('Error fetching news from API:', error);

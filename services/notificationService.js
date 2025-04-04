@@ -21,7 +21,7 @@ exports.registerDeviceToken = async (token) => {
     }
 };
 
-exports.sendNotificationToAllDevices = async (title, body, imageUrl = null) => {
+exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type = 'kegiatan') => {
     try {
         const snapshot = await db.ref('tokens').once('value');
         const tokens = [];
@@ -34,56 +34,67 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null) => {
             return { success: false, message: 'No device tokens available' };
         }
 
+        // Enhanced message structure
         const message = {
             notification: {
                 title: title,
-                body: body
+                body: body,
+                image: imageUrl // Standard FCM image field
+            },
+            data: {
+                type: type, // 'kegiatan' or 'news'
+                image_url: imageUrl || '',
+                click_action: 'FLUTTER_NOTIFICATION_CLICK',
+                id: Date.now().toString() // Unique ID for each notification
             },
             android: {
                 notification: {
-                    imageUrl: imageUrl
+                    imageUrl: imageUrl,
+                    priority: 'high',
+                    channel_id: 'wasteapp_channel' // Specific channel for kegiatan
                 }
             },
             apns: {
                 payload: {
                     aps: {
-                        'mutable-content': 1
+                        'mutable-content': 1,
+                        'content-available': 1
                     }
                 },
                 fcm_options: {
                     image: imageUrl
                 }
-            },
-            webpush: {
-                headers: {
-                    image: imageUrl
-                }
             }
         };
 
+        // Clean up if no image
         if (!imageUrl) {
+            delete message.notification.image;
+            delete message.data.image_url;
             delete message.android.notification.imageUrl;
             delete message.apns.fcm_options.image;
             delete message.webpush.headers.image;
         }
 
-        const sendPromises = tokens.slice(0, 500).map(token => {
-            return admin.messaging().send({
-                ...message,
-                token: token 
-            }).catch(error => {
-                console.log('Error sending to token:', token, error);
-                return false; 
-            });
-        });
+        // Batch processing for better performance
+        const BATCH_SIZE = 500;
+        let successCount = 0;
 
-        const results = await Promise.all(sendPromises);
-        const successCount = results.filter(result => result !== false).length;
+        for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
+            const batch = tokens.slice(i, i + BATCH_SIZE);
+            const responses = await admin.messaging().sendEach(
+                batch.map(token => ({
+                    token: token,
+                    ...message
+                }))
+            );
+            successCount += responses.responses.filter(r => r.success).length;
+        }
 
         return {
             success: true,
-            successCount: successCount,
-            failureCount: tokens.length - successCount
+            sent: successCount,
+            failed: tokens.length - successCount
         };
     } catch (error) {
         console.error('Error sending notifications:', error);

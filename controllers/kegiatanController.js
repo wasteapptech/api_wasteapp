@@ -88,7 +88,7 @@ exports.createKegiatan = async (req, res) => {
 
     const result = await kegiatanService.createKegiatan(newKegiatan);
     await notificationService.sendNotificationToAllDevices(
-      'Kegiatan Baru', 
+      'Kegiatan Baru Komunitas', 
       `${judul}\n${deskripsi}`,
       newKegiatan.gambarUrl 
     );

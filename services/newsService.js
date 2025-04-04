@@ -1,6 +1,8 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { db } = require('../config/firebase'); 
+const notificationService = require('./notificationService');
+
 
 const scrapeDetikSampahArticles = async () => {
     try {
@@ -109,6 +111,37 @@ const getExistingArticleUrls = async () => {
     const newsData = snapshot.val();
 
     return newsData ? Object.values(newsData).map(article => article.url) : [];
+};
+
+exports.fetchNewsAndUpdateDatabase = async () => {
+    try {
+        const apiNews = await fetchNewsFromExternalAPI(); // Your existing API fetch
+        const newNewsItems = [];
+        
+        for (const item of apiNews) {
+            const exists = await checkIfNewsExists(item.id); // Implement this check
+            if (!exists) {
+                const savedItem = await saveNewsToDatabase(item);
+                newNewsItems.push(savedItem);
+                
+                // Send notification for each new news item
+                await notificationService.sendNotificationToAllDevices(
+                    'Berita Baru: ' + item.title,
+                    item.description || item.content.substring(0, 100) + '...',
+                    item.imageUrl // Make sure your API returns imageUrl
+                );
+            }
+        }
+        
+        return {
+            totalFetched: apiNews.length,
+            newItems: newNewsItems.length,
+            newItems
+        };
+    } catch (error) {
+        console.error('Error in fetchNewsAndUpdateDatabase:', error);
+        throw error;
+    }
 };
 
 module.exports = {
