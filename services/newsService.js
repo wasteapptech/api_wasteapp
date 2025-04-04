@@ -14,25 +14,35 @@ const scrapeDetikSampahArticles = async () => {
 
         $('article').each((index, element) => {
             const $article = $(element);
-            if ($article.hasClass('foto_tag')) return;
+            
+            const baseData = {
+                title: $article.find('h2.title').text().trim(),
+                url: $article.find('a').attr('href'),
+                scrapedAt: new Date().toISOString(),
+                type: $article.hasClass('foto_tag') ? 'photo_article' : 'article'
+            };
 
-            const title = $article.find('h2.title').text().trim();
-            const url = $article.find('a').attr('href');
-            const image = $article.find('img').attr('data-src') || $article.find('img').attr('src');
-            const date = $article.find('span.date').text().replace(/\s+/g, ' ').trim();
-            const category = $article.find('span.category').text().trim();
-            const description = $article.find('p').text().trim();
+            // Cari gambar dengan berbagai metode
+            let image = null;
+            if ($article.hasClass('foto_tag')) {
+                const imageStyle = $article.find('.ratiobox_content').attr('style') || '';
+                const imageMatch = imageStyle.match(/background-image:\s*url\(['"]?(.*?)['"]?\)/i);
+                image = imageMatch ? imageMatch[1] : null;
+            } else {
+                image = $article.find('img').attr('data-src') || $article.find('img').attr('src');
+            }
 
-            if (title && url) {
+            const additionalData = $article.hasClass('foto_tag') ? {} : {
+                date: $article.find('span.date').text().replace(/\s+/g, ' ').trim(),
+                category: $article.find('span.category').text().trim(),
+                description: $article.find('p').text().trim()
+            };
+
+            if (baseData.title && baseData.url) {
                 articles.push({
-                    title,
-                    url,
-                    image: image || null,
-                    date,
-                    category,
-                    description,
-                    scrapedAt: new Date().toISOString(),
-                    type: 'article'
+                    ...baseData,
+                    image,
+                    ...additionalData
                 });
             }
         });
@@ -78,70 +88,69 @@ const getAllNews = async () => {
 const fetchNewsAndUpdateDatabase = async () => {
     try {
         const scrapedArticles = await scrapeDetikSampahArticles();
-        const existingUrls = await getExistingArticleUrls();
-
-        const updates = {};
-        let newArticlesCount = 0;
-
-        scrapedArticles.forEach(article => {
-            if (!existingUrls.includes(article.url)) {
-                const newKey = db.ref('sampah_articles').push().key;
-                updates[`/sampah_articles/${newKey}`] = article;
-                newArticlesCount++;
-            }
-        });
-
-        if (newArticlesCount > 0) {
-            await db.ref().update(updates);
-        }
-
-        return {
-            success: true,
-            message: `Added ${newArticlesCount} new articles`,
-            count: newArticlesCount
-        };
-    } catch (error) {
-        console.error('Error updating news database:', error);
-        throw error;
-    }
-};
-
-const getExistingArticleUrls = async () => {
-    const snapshot = await db.ref('sampah_articles').once('value');
-    const newsData = snapshot.val();
-
-    return newsData ? Object.values(newsData).map(article => article.url) : [];
-};
-
-exports.fetchNewsAndUpdateDatabase = async () => {
-    try {
-        const apiNews = await fetchNewsFromExternalAPI(); // Your existing API fetch
         const newNewsItems = [];
         
-        for (const item of apiNews) {
-            const exists = await checkIfNewsExists(item.id); // Implement this check
+        for (const article of scrapedArticles) {
+            const exists = await checkIfArticleExists(article.url); 
             if (!exists) {
-                const savedItem = await saveNewsToDatabase(item);
+                const savedItem = await saveArticleToDatabase(article);
                 newNewsItems.push(savedItem);
-                
-                // Send notification for each new news item
+
+                // Ambil deskripsi jika ada
+                let description = '';
+                if (article.description && article.description.trim()) {
+                    description = article.description;
+                } else if (article.content && article.content.trim()) {
+                    description = article.content.substring(0, 100) + '...';
+                }
+
                 await notificationService.sendNotificationToAllDevices(
-                    'Berita Baru: ' + item.title,
-                    item.description || item.content.substring(0, 100) + '...',
-                    item.imageUrl // Make sure your API returns imageUrl
+                    'Berita Baru: ' + article.title,
+                    description || undefined, // kalau kosong, gak dikasih
+                    article.imageUrl
                 );
             }
         }
         
         return {
-            totalFetched: apiNews.length,
-            newItems: newNewsItems.length,
-            newItems
+            totalFetched: scrapedArticles.length,
+            newCount: newNewsItems.length,
+            newItems: newNewsItems
         };
     } catch (error) {
         console.error('Error in fetchNewsAndUpdateDatabase:', error);
         throw error;
     }
+}
+
+
+const checkIfArticleExists = async (url) => {
+    const snapshot = await db.ref('sampah_articles')
+        .orderByChild('url')
+        .equalTo(url)
+        .once('value');
+    return snapshot.exists();
+};
+
+const saveArticleToDatabase = async (article) => {
+    // Standarisasi field yang mungkin kosong
+    const standardizedArticle = {
+        title: article.title || 'No Title',
+        url: article.url,
+        image: article.image || null,
+        date: article.date || '',
+        category: article.category || '',
+        description: article.description || '',
+        scrapedAt: article.scrapedAt || new Date().toISOString(),
+        type: article.type || 'article'
+    };
+    
+    const newKey = db.ref('sampah_articles').push().key;
+    await db.ref(`/sampah_articles/${newKey}`).set({
+        ...standardizedArticle,
+        id: newKey
+    });
+    return standardizedArticle;
 };
 
 module.exports = {

@@ -39,19 +39,19 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
             notification: {
                 title: title,
                 body: body,
-                image: imageUrl // Standard FCM image field
+                ...(imageUrl && { image: imageUrl }) // Only add image if exists
             },
             data: {
-                type: type, // 'kegiatan' or 'news'
-                image_url: imageUrl || '',
+                type: type,
+                ...(imageUrl && { image_url: imageUrl }), // Only add if exists
                 click_action: 'FLUTTER_NOTIFICATION_CLICK',
-                id: Date.now().toString() // Unique ID for each notification
+                id: Date.now().toString()
             },
             android: {
                 notification: {
-                    imageUrl: imageUrl,
+                    ...(imageUrl && { imageUrl: imageUrl }), // Only add if exists
                     priority: 'high',
-                    channel_id: 'wasteapp_channel' // Specific channel for kegiatan
+                    channel_id: 'wasteapp_channel'
                 }
             },
             apns: {
@@ -61,20 +61,9 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
                         'content-available': 1
                     }
                 },
-                fcm_options: {
-                    image: imageUrl
-                }
+                ...(imageUrl && { fcm_options: { image: imageUrl } }) // Only add if exists
             }
         };
-
-        // Clean up if no image
-        if (!imageUrl) {
-            delete message.notification.image;
-            delete message.data.image_url;
-            delete message.android.notification.imageUrl;
-            delete message.apns.fcm_options.image;
-            delete message.webpush.headers.image;
-        }
 
         // Batch processing for better performance
         const BATCH_SIZE = 500;
