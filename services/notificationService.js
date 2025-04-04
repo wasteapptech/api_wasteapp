@@ -24,100 +24,69 @@ exports.registerDeviceToken = async (token) => {
 exports.sendNotificationToAllDevices = async (title, body, imageUrl = null) => {
     try {
         const snapshot = await db.ref('tokens').once('value');
-        const tokens = snapshot.val() ? Object.values(snapshot.val()).map(t => t.token) : [];
+        const tokens = [];
+
+        snapshot.forEach(childSnapshot => {
+            tokens.push(childSnapshot.val().token);
+        });
 
         if (tokens.length === 0) {
-            console.log('Tidak ada device token terdaftar');
-            return { success: false, message: 'No registered devices' };
+            return { success: false, message: 'No device tokens available' };
         }
 
-        console.log(`Sending notification with image: ${imageUrl}`);
-
-        // Base message structure
         const message = {
             notification: {
-                title,
-                body,
-                imageUrl: imageUrl || undefined
-            },
-            data: {
-                title,
-                body,
-                imageUrl: imageUrl || ''
+                title: title,
+                body: body
             },
             android: {
-                priority: 'high',
                 notification: {
-                    imageUrl: imageUrl || undefined,
-                    priority: 'high',
-                    visibility: 'public'
+                    imageUrl: imageUrl
                 }
             },
             apns: {
-                headers: {
-                    'apns-priority': '10'
-                },
                 payload: {
                     aps: {
-                        alert: {
-                            title,
-                            body
-                        },
-                        'mutable-content': 1,
-                        'content-available': 1
+                        'mutable-content': 1
                     }
                 },
                 fcm_options: {
-                    image: imageUrl || undefined
+                    image: imageUrl
                 }
             },
             webpush: {
-                notification: {
-                    title,
-                    body,
-                    icon: imageUrl || undefined,
-                    image: imageUrl || undefined
-                },
                 headers: {
-                    Urgency: 'high'
+                    image: imageUrl
                 }
             }
         };
 
-        // Kirim ke semua device (dalam batch 500)
-        const batchSize = 500;
-        const batches = Math.ceil(tokens.length / batchSize);
-        let successCount = 0;
-
-        for (let i = 0; i < batches; i++) {
-            const batchTokens = tokens.slice(i * batchSize, (i + 1) * batchSize);
-
-            try {
-                const response = await admin.messaging().sendEachForMulticast({
-                    tokens: batchTokens,
-                    ...message
-                });
-                
-                successCount += response.successCount;
-                console.log(`Batch ${i+1} notification sent. Success: ${response.successCount}, Failure: ${response.failureCount}`);
-                
-                // Log failure details if any
-                if (response.failureCount > 0) {
-                    console.log('Failure details:', response.responses.filter(r => !r.success));
-                }
-            } catch (batchError) {
-                console.error(`Error batch ${i+1}:`, batchError);
-            }
+        if (!imageUrl) {
+            delete message.android.notification.imageUrl;
+            delete message.apns.fcm_options.image;
+            delete message.webpush.headers.image;
         }
+
+        const sendPromises = tokens.slice(0, 500).map(token => {
+            return admin.messaging().send({
+                ...message,
+                token: token 
+            }).catch(error => {
+                console.log('Error sending to token:', token, error);
+                return false; 
+            });
+        });
+
+        const results = await Promise.all(sendPromises);
+        const successCount = results.filter(result => result !== false).length;
 
         return {
             success: true,
-            sentCount: successCount,
-            totalDevices: tokens.length,
-            imageIncluded: !!imageUrl
+            successCount: successCount,
+            failureCount: tokens.length - successCount
         };
     } catch (error) {
-        console.error('Error in sendNotificationToAllDevices:', error);
+        console.error('Error sending notifications:', error);
         throw error;
     }
 };

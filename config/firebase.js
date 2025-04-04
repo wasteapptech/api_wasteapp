@@ -1,6 +1,5 @@
 const admin = require('firebase-admin');
 
-// Properly handle newlines in private key
 const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
 
 admin.initializeApp({
@@ -14,4 +13,4 @@ admin.initializeApp({
 
 const db = admin.database();
 
-module.exports = { admin, db}; // Export messaging
+module.exports = { admin, db};
