@@ -1,10 +1,17 @@
-# wasteapp
 
-Api WasteApp project for Final Capstone Project Telecommunication Engineering 21
+# WasteApp API
 
-Judul : Optimalisasi aplikasi bank sampah dan perancangan tempat sampah berbasil IOT
+**Capstone Project for Telecommunication Engineering 21**
 
-config/
+**Title:**  
+Optimalisasi aplikasi bank sampah dan perancangan tempat sampah berbasis IoT
+
+---
+
+## Struktur Project
+
+```
+config/ 
   └── firebase.js             # Konfigurasi koneksi ke Firebase
 controllers/
   ├── adminController.js       # Logika untuk fitur admin
@@ -38,4 +45,4 @@ package.json                     # Konfigurasi npm project (nama, dependensi, sc
 package-lock.json                # Lockfile versi package untuk konsistensi instalasi
 readme.md                        # Dokumentasi project
 vercel.json                      # Konfigurasi untuk deployment ke Vercel
-
+```
