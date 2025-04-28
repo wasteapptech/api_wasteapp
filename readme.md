@@ -38,3 +38,4 @@ package.json                     # Konfigurasi npm project (nama, dependensi, sc
 package-lock.json                # Lockfile versi package untuk konsistensi instalasi
 readme.md                        # Dokumentasi project
 vercel.json                      # Konfigurasi untuk deployment ke Vercel
+
