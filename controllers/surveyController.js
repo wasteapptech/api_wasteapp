@@ -1,48 +1,88 @@
-const Survey = require('../models/survey');
-const User = require('../models/user');
+const { db } = require('../config/firebase');
+const { getCurrentTimestamp, formatTimestamp } = require('../utils/datetimeHelper');
 
-// Mengirim jawaban survei
 exports.submitSurvey = async (req, res) => {
     try {
         const { email, answers } = req.body;
+        
+        if (!email || !answers) {
+            return res.status(400).json({ error: 'Email and answers are required' });
+        }
 
-        // Check if a survey already exists for this email
-        let survey = await Survey.findOne({ email });
+        const surveysRef = db.ref('surveys');
+        const timestamp = getCurrentTimestamp();
 
-        if (survey) {
+        // Check if survey exists
+        const snapshot = await surveysRef.orderByChild('email').equalTo(email).once('value');
+        
+        if (snapshot.exists()) {
             // Update existing survey
-            survey.answers = answers;
-            survey.completed = true;
+            const surveyData = snapshot.val();
+            const surveyId = Object.keys(surveyData)[0];
+            
+            await surveysRef.child(surveyId).update({
+                answers,
+                completed: true,
+                updatedAt: timestamp
+            });
         } else {
-            // Create a new survey
-            survey = new Survey({
+            // Create new survey
+            const newSurveyRef = surveysRef.push();
+            await newSurveyRef.set({
                 email,
                 answers,
                 completed: true,
+                createdAt: timestamp,
+                updatedAt: timestamp
             });
         }
 
-        await survey.save();
-        res.json({ message: 'Survey submitted successfully' });
+        res.json({ 
+            message: 'Survey submitted successfully',
+            timestamp: formatTimestamp(timestamp)
+        });
     } catch (error) {
+        console.error('Survey submission error:', error);
         res.status(500).json({ error: 'Survey submission failed' });
     }
 };
 
-// Mendapatkan jawaban survei
 exports.getSurvey = async (req, res) => {
     try {
         const { email } = req.query;
 
-        // Find the survey by email
-        const survey = await Survey.findOne({ email });
-
-        if (!survey || !survey.completed) {
-            return res.status(404).json({ error: 'Survey not found or not completed' });
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
         }
 
-        res.json(survey);
+        const surveysRef = db.ref('surveys');
+        const snapshot = await surveysRef.orderByChild('email').equalTo(email).once('value');
+        
+        if (!snapshot.exists()) {
+            return res.status(404).json({ error: 'Survey not found' });
+        }
+
+        const surveyData = snapshot.val();
+        const surveyId = Object.keys(surveyData)[0];
+        const survey = surveyData[surveyId];
+
+        if (!survey.completed) {
+            return res.status(404).json({ error: 'Survey not completed' });
+        }
+
+        // Format the response
+        const response = {
+            id: surveyId,
+            email: survey.email,
+            answers: survey.answers,
+            completed: survey.completed,
+            createdAt: formatTimestamp(survey.createdAt),
+            updatedAt: formatTimestamp(survey.updatedAt)
+        };
+
+        res.json(response);
     } catch (error) {
+        console.error('Get survey error:', error);
         res.status(500).json({ error: 'Failed to retrieve survey' });
     }
 };
@@ -55,17 +95,23 @@ exports.checkSurveyStatus = async (req, res) => {
             return res.status(400).json({ error: 'Email is required' });
         }
         
-        const survey = await Survey.findOne({ email });
+        const surveysRef = db.ref('surveys');
+        const snapshot = await surveysRef.orderByChild('email').equalTo(email).once('value');
         
-        if (survey) {
+        if (snapshot.exists()) {
+            const surveyData = snapshot.val();
+            const surveyId = Object.keys(surveyData)[0];
+            const survey = surveyData[surveyId];
+            
             return res.status(200).json({ 
                 completed: survey.completed,
-                timestamp: survey.updatedAt 
+                timestamp: formatTimestamp(survey.updatedAt)
             });
         } else {
             return res.status(200).json({ completed: false });
         }
     } catch (error) {
+        console.error('Check survey status error:', error);
         res.status(500).json({ error: 'Failed to check survey status' });
     }
 };

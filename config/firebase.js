@@ -10,7 +10,9 @@ admin.initializeApp({
   }),
   databaseURL: process.env.FIREBASE_DATABASE_URL
 });
-
 const db = admin.database();
 
-module.exports = { admin, db};
+console.log('Firebase Database connected successfully');
+
+
+module.exports = { admin, db };

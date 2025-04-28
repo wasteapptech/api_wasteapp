@@ -4,17 +4,13 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 
-// Configure Cloudinary with environment variables
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Configure multer for memory storage
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Cloudinary upload function
 const uploadToCloudinary = (buffer) => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -29,15 +25,12 @@ const uploadToCloudinary = (buffer) => {
   });
 };
 
-// Middleware for handling file uploads
 exports.uploadImage = upload.single('gambar');
 
 // Get semua kegiatan
 exports.getAllKegiatan = async (req, res) => {
   try {
     let kegiatanArray = await kegiatanService.getAllKegiatan();
-
-    // Urutkan berdasarkan createdAt terbaru
     kegiatanArray.sort((a, b) => b.createdAt - a.createdAt);
 
     res.status(200).json(kegiatanArray);
