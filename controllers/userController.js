@@ -11,7 +11,7 @@ exports.getUserProfile = async (req, res) => {
 
         const profilesRef = db.ref('profiles');
         const snapshot = await profilesRef.orderByChild('name').equalTo(name).once('value');
-        
+
         if (!snapshot.exists()) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -34,95 +34,95 @@ exports.getUserProfile = async (req, res) => {
 };
 
 exports.updateUserProfile = async (req, res) => {
-  try {
-      const { currentName, newName, newEmail } = req.body;
+    try {
+        const { currentName, newName, newEmail } = req.body;
 
-      if (!currentName) {
-          return res.status(400).json({ error: 'Current name is required' });
-      }
+        if (!currentName) {
+            return res.status(400).json({ error: 'Current name is required' });
+        }
 
-      const timestamp = getCurrentTimestamp();
-      const profilesRef = db.ref('profiles');
-      const usersRef = db.ref('users');
-      const updates = {};
-      const userUpdates = {};
+        const timestamp = getCurrentTimestamp();
+        const profilesRef = db.ref('profiles');
+        const usersRef = db.ref('users');
+        const updates = {};
+        const userUpdates = {};
 
-      // Find user by current name
-      const snapshot = await profilesRef.orderByChild('name').equalTo(currentName).once('value');
-      
-      if (!snapshot.exists()) {
-          return res.status(404).json({ error: 'User not found' });
-      }
+        // Find user by current name
+        const snapshot = await profilesRef.orderByChild('name').equalTo(currentName).once('value');
 
-      const userData = snapshot.val();
-      const profileId = Object.keys(userData)[0];
-      const profile = userData[profileId];
-      const userId = profile.userId; // Get the linked user ID
+        if (!snapshot.exists()) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
-      // Check and update name
-      if (newName && newName !== currentName) {
-          // Verify new name isn't already taken
-          const nameCheck = await profilesRef.orderByChild('name').equalTo(newName).once('value');
-          if (nameCheck.exists()) {
-              return res.status(400).json({ error: 'Username already in use' });
-          }
-          updates.name = newName;
-          userUpdates.name = newName; // Also update in users collection
-      }
+        const userData = snapshot.val();
+        const profileId = Object.keys(userData)[0];
+        const profile = userData[profileId];
+        const userId = profile.userId; // Get the linked user ID
 
-      // Check and update email
-      if (newEmail && newEmail !== profile.email) {
-          // Verify new email isn't already used
-          const emailCheck = await profilesRef.orderByChild('email').equalTo(newEmail).once('value');
-          if (emailCheck.exists()) {
-              const existingProfile = emailCheck.val();
-              const existingProfileId = Object.keys(existingProfile)[0];
-              if (existingProfileId !== profileId) {
-                  return res.status(400).json({ error: 'Email already in use' });
-              }
-          }
-          updates.email = newEmail;
-          userUpdates.email = newEmail; // Also update in users collection
-      }
+        // Check and update name
+        if (newName && newName !== currentName) {
+            // Verify new name isn't already taken
+            const nameCheck = await profilesRef.orderByChild('name').equalTo(newName).once('value');
+            if (nameCheck.exists()) {
+                return res.status(400).json({ error: 'Username already in use' });
+            }
+            updates.name = newName;
+            userUpdates.name = newName; // Also update in users collection
+        }
 
-      // If no updates needed
-      if (Object.keys(updates).length === 0) {
-          return res.status(200).json({ 
-              message: 'No changes detected',
-              user: {
-                  name: profile.name,
-                  email: profile.email
-              }
-          });
-      }
+        // Check and update email
+        if (newEmail && newEmail !== profile.email) {
+            // Verify new email isn't already used
+            const emailCheck = await profilesRef.orderByChild('email').equalTo(newEmail).once('value');
+            if (emailCheck.exists()) {
+                const existingProfile = emailCheck.val();
+                const existingProfileId = Object.keys(existingProfile)[0];
+                if (existingProfileId !== profileId) {
+                    return res.status(400).json({ error: 'Email already in use' });
+                }
+            }
+            updates.email = newEmail;
+            userUpdates.email = newEmail; // Also update in users collection
+        }
 
-      // Add update timestamp
-      updates.updatedAt = timestamp;
-      userUpdates.updatedAt = timestamp;
+        // If no updates needed
+        if (Object.keys(updates).length === 0) {
+            return res.status(200).json({
+                message: 'No changes detected',
+                user: {
+                    name: profile.name,
+                    email: profile.email
+                }
+            });
+        }
 
-      // Perform the updates in both collections
-      await Promise.all([
-          profilesRef.child(profileId).update(updates),
-          usersRef.child(userId).update(userUpdates)
-      ]);
+        // Add update timestamp
+        updates.updatedAt = timestamp;
+        userUpdates.updatedAt = timestamp;
 
-      // Get updated user data
-      const updatedUser = {
-          name: updates.name || profile.name,
-          email: updates.email || profile.email
-      };
+        // Perform the updates in both collections
+        await Promise.all([
+            profilesRef.child(profileId).update(updates),
+            usersRef.child(userId).update(userUpdates)
+        ]);
 
-      res.status(200).json({
-          message: 'Profile updated successfully',
-          user: updatedUser,
-          updatedAt: formatTimestamp(timestamp)
-      });
+        // Get updated user data
+        const updatedUser = {
+            name: updates.name || profile.name,
+            email: updates.email || profile.email
+        };
 
-  } catch (error) {
-      console.error('Update profile error:', error);
-      res.status(500).json({ 
-          error: 'Profile update failed',
-          details: error.message 
-      });
-  }
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            user: updatedUser,
+            updatedAt: formatTimestamp(timestamp)
+        });
+
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({
+            error: 'Profile update failed',
+            details: error.message
+        });
+    }
 };
