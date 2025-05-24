@@ -17,6 +17,7 @@ controllers/
   ├── adminController.js       # Logika untuk fitur admin
   ├── authController.js        # Logika untuk autentikasi pengguna (login, register, dll)
   ├── kegiatanController.js    # Logika untuk fitur kegiatan/event
+  ├── HargaController.js       # Logika untuk fitur untuk menampilkan list harga sampah 
   ├── newsController.js        # Logika untuk berita atau informasi
   ├── notificationController.js# Logika untuk mengelola notifikasi
   ├── surveyController.js      # Logika untuk survey pengguna
@@ -26,12 +27,14 @@ routes/
   ├── auth.js                  # Routing endpoint untuk autentikasi
   ├── kegiatan.js              # Routing endpoint untuk kegiatan/event
   ├── news.js                  # Routing endpoint untuk berita
+  ├── harga.js                 # Routing endpoint untuk harga
   ├── notification.js          # Routing endpoint untuk notifikasi
   ├── survey.js                # Routing endpoint untuk survey
   └── user.js                  # Routing endpoint untuk user
 services/
   ├── kegiatanService.js       # Service untuk pengolahan data kegiatan
-  ├── newsService.js            # Service untuk pengolahan data berita
+  ├── newsService.js           # Service untuk pengolahan data berita
+  ├── hargaService.js           # Service untuk pengolahan data berita
   └── notificationService.js   # Service untuk pengolahan data notifikasi
 utils/
   ├── authHelper.js             # Helper untuk fungsi-fungsi autentikasi tambahan
