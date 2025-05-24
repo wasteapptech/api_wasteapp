@@ -21,6 +21,7 @@ controllers/
   ├── newsController.js        # Logika untuk berita atau informasi
   ├── notificationController.js# Logika untuk mengelola notifikasi
   ├── surveyController.js      # Logika untuk survey pengguna
+  ├── transaksiController.js   # Logika untuk transaksi pengguna
   └── userController.js        # Logika untuk manajemen data pengguna
 routes/
   ├── admin.js                 # Routing endpoint untuk admin
@@ -29,6 +30,7 @@ routes/
   ├── news.js                  # Routing endpoint untuk berita
   ├── harga.js                 # Routing endpoint untuk harga
   ├── notification.js          # Routing endpoint untuk notifikasi
+  ├── transaksi.js             # Routing endpoint untuk transaksi
   ├── survey.js                # Routing endpoint untuk survey
   └── user.js                  # Routing endpoint untuk user
 services/
