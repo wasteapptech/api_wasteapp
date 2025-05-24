@@ -56,7 +56,16 @@ exports.getTransaksiByUser = async (req, res) => {
     try {
         const { email } = req.params;
         const transaksi = await transaksiService.getTransaksiByUser(email);
-        res.status(200).json(transaksi);
+        
+        const totalSemuaTransaksi = transaksi.reduce((total, t) => {
+            return total + (t.totalTransaksi || 0);
+        }, 0);
+
+        res.status(200).json({
+            transaksi: transaksi,
+            totalSemuaTransaksi: totalSemuaTransaksi,
+            jumlahTransaksi: transaksi.length
+        });
     } catch (error) {
         console.error('Error fetching user transaksi:', error);
         res.status(500).json({ error: 'Gagal memuat transaksi pengguna' });

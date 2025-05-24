@@ -10,7 +10,7 @@ const kegiatanRoutes = require('./routes/kegiatan');
 const hargaRoutes = require('./routes/harga');
 const newsRoutes = require('./routes/news');
 const hargaService = require('./services/HargaService');
-const transaksiRoutes = require('./routes/transaksiRoutes');
+const transaksiRoutes = require('./routes/transaksi');
 const notificationRoutes = require('./routes/notification');
 const app = express();
 app.use(express.json());
