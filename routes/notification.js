@@ -2,10 +2,7 @@ const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notificationController');
 
-// Register token FCM
 router.post('/register-token', notificationController.registerToken);
-
-// Kirim test notification
-router.post('/send-test', notificationController.sendTestNotification);
+router.post('/cleanup', notificationController.cleanupTokens);
 
 module.exports = router;
