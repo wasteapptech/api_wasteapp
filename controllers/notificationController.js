@@ -1,32 +1,44 @@
 const notificationService = require('../services/notificationService');
 
 exports.registerToken = async (req, res) => {
-  try {
-      const { token } = req.body;
-      
-      if (!token) {
-          return res.status(400).json({ error: 'Token is required' });
-      }
+    try {
+        const { token, skipTest } = req.body;
+        
+        if (!token) {
+            return res.status(400).json({ error: 'Token is required' });
+        }
 
-      const testResult = await notificationService.testSingleToken(token, 'Welcome!', 'Your notifications are now active');
-      
-      if (testResult.success) {
-          const result = await notificationService.registerDeviceToken(token);
-          res.status(200).json({ 
-              success: true, 
-              message: 'Token registered and tested successfully',
-              testMessageId: testResult.messageId
-          });
-      } else {
-          res.status(400).json({ 
-              error: 'Token validation failed', 
-              details: testResult.error 
-          });
-      }
-  } catch (error) {
-      console.error('Error registering token:', error);
-      res.status(500).json({ error: 'Failed to register token' });
-  }
+        // Register token first
+        const registrationResult = await notificationService.registerDeviceToken(token);
+
+        // Skip test if requested
+        if (skipTest) {
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Token registered successfully'
+            });
+        }
+
+        // Test the token
+        try {
+            const testResult = await notificationService.testSingleToken(token, 'Welcome!', 'Your notifications are now active');
+            res.status(200).json({ 
+                success: true, 
+                message: 'Token registered and tested successfully',
+                testMessageId: testResult.messageId
+            });
+        } catch (testError) {
+            // Don't fail registration if test fails
+            res.status(200).json({ 
+                success: true, 
+                message: 'Token registered but test failed',
+                testError: testError.message
+            });
+        }
+    } catch (error) {
+        console.error('Error registering token:', error);
+        res.status(500).json({ error: 'Failed to register token' });
+    }
 };
 
 exports.cleanupTokens = async (req, res) => {

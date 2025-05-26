@@ -196,3 +196,41 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
         throw error;
     }
 };
+
+exports.testSingleToken = async (token, title = 'Test', body = 'Test notification') => {
+    try {
+        const message = {
+            token: token,
+            notification: {
+                title: title,
+                body: body
+            },
+            android: {
+                notification: {
+                    priority: 'high',
+                    channel_id: 'wasteapp_channel',
+                    sound: 'default'
+                },
+                priority: 'high'
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        alert: {
+                            title: title,
+                            body: body
+                        },
+                        sound: 'default'
+                    }
+                }
+            }
+        };
+
+        const response = await admin.messaging().send(message);
+        console.log('Test notification sent successfully:', response);
+        return { success: true, messageId: response };
+    } catch (error) {
+        console.error('Test notification failed:', error);
+        return { success: false, error: error.message };
+    }
+};
