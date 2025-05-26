@@ -1,5 +1,34 @@
 const { db } = require('../config/firebase');
 const { getCurrentTimestamp, formatTimestamp } = require('../utils/datetimeHelper');
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+const streamifier = require('streamifier');
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+const uploadToCloudinary = (buffer) => {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: 'image',
+                folder: 'avatars'
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }
+        );
+        streamifier.createReadStream(buffer).pipe(uploadStream);
+    });
+};
+
+exports.uploadAvatar = upload.single('avatar');
 
 exports.getUserProfile = async (req, res) => {
     try {
@@ -47,7 +76,6 @@ exports.updateUserProfile = async (req, res) => {
         const updates = {};
         const userUpdates = {};
 
-        // Find user by current name
         const snapshot = await profilesRef.orderByChild('name').equalTo(currentName).once('value');
 
         if (!snapshot.exists()) {
@@ -57,7 +85,23 @@ exports.updateUserProfile = async (req, res) => {
         const userData = snapshot.val();
         const profileId = Object.keys(userData)[0];
         const profile = userData[profileId];
-        const userId = profile.userId; // Get the linked user ID
+        const userId = profile.userId;
+
+        if (req.file) {
+            try {
+                if (profile.avatarPublicId) {
+                    await cloudinary.uploader.destroy(profile.avatarPublicId);
+                }
+
+                const cloudinaryResult = await uploadToCloudinary(req.file.buffer);
+                updates.avatarUrl = cloudinaryResult.secure_url;
+                updates.avatarPublicId = cloudinaryResult.public_id;
+                userUpdates.avatarUrl = cloudinaryResult.secure_url;
+            } catch (uploadError) {
+                console.error('Error uploading avatar:', uploadError);
+                return res.status(500).json({ error: 'Failed to upload avatar' });
+            }
+        }
 
         // Check and update name
         if (newName && newName !== currentName) {
@@ -67,12 +111,10 @@ exports.updateUserProfile = async (req, res) => {
                 return res.status(400).json({ error: 'Username already in use' });
             }
             updates.name = newName;
-            userUpdates.name = newName; // Also update in users collection
+            userUpdates.name = newName;
         }
 
-        // Check and update email
         if (newEmail && newEmail !== profile.email) {
-            // Verify new email isn't already used
             const emailCheck = await profilesRef.orderByChild('email').equalTo(newEmail).once('value');
             if (emailCheck.exists()) {
                 const existingProfile = emailCheck.val();
@@ -82,34 +124,31 @@ exports.updateUserProfile = async (req, res) => {
                 }
             }
             updates.email = newEmail;
-            userUpdates.email = newEmail; // Also update in users collection
+            userUpdates.email = newEmail;
         }
 
-        // If no updates needed
         if (Object.keys(updates).length === 0) {
             return res.status(200).json({
                 message: 'No changes detected',
                 user: {
                     name: profile.name,
-                    email: profile.email
+                    email: profile.email,
+                    avatarUrl: profile.avatarUrl
                 }
             });
         }
 
-        // Add update timestamp
         updates.updatedAt = timestamp;
         userUpdates.updatedAt = timestamp;
-
-        // Perform the updates in both collections
         await Promise.all([
             profilesRef.child(profileId).update(updates),
             usersRef.child(userId).update(userUpdates)
         ]);
 
-        // Get updated user data
         const updatedUser = {
             name: updates.name || profile.name,
-            email: updates.email || profile.email
+            email: updates.email || profile.email,
+            avatarUrl: updates.avatarUrl || profile.avatarUrl
         };
 
         res.status(200).json({
