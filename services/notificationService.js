@@ -86,7 +86,7 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
                     priority: 'high',
                     channel_id: 'wasteapp_channel',
                     sound: 'default',
-                    vibrationPattern: [1000, 1000, 1000, 1000] // Changed to correct property name
+                    vibration_timings_millis: [1000, 1000, 1000, 1000] // Corrected property name
                 },
                 priority: 'high',
                 ttl: 3600000 // 1 hour TTL
@@ -108,6 +108,7 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
             }
         };
 
+        // Rest of the function remains the same...
         const BATCH_SIZE = 100; 
         let successCount = 0;
         let failedCount = 0;
@@ -194,29 +195,5 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
     } catch (error) {
         console.error('Error in sendNotificationToAllDevices:', error);
         throw error;
-    }
-};
-
-// Utility function to test single token
-exports.testSingleToken = async (token, title = 'Test', body = 'Test notification') => {
-    try {
-        const message = {
-            token: token,
-            notification: {
-                title: title,
-                body: body
-            },
-            data: {
-                type: 'test',
-                timestamp: new Date().toISOString()
-            }
-        };
-
-        const response = await admin.messaging().send(message);
-        console.log('Test notification sent successfully:', response);
-        return { success: true, messageId: response };
-    } catch (error) {
-        console.error('Test notification failed:', error);
-        return { success: false, error: error.message };
     }
 };
