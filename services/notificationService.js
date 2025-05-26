@@ -86,7 +86,7 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
                     priority: 'high',
                     channel_id: 'wasteapp_channel',
                     sound: 'default',
-                    vibration_pattern: [1000, 1000, 1000, 1000]
+                    vibrationPattern: [1000, 1000, 1000, 1000] // Changed to correct property name
                 },
                 priority: 'high',
                 ttl: 3600000 // 1 hour TTL
