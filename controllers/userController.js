@@ -53,6 +53,7 @@ exports.getUserProfile = async (req, res) => {
             id: userId,
             name: user.name,
             email: user.email,
+            avatarUrl: user.avatarUrl || null,  
             createdAt: formatTimestamp(user.createdAt),
             updatedAt: formatTimestamp(user.updatedAt)
         });
