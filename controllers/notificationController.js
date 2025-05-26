@@ -1,6 +1,6 @@
 const notificationService = require('../services/notificationService');
 
-xports.registerToken = async (req, res) => {
+exports.registerToken = async (req, res) => {
   try {
       const { token } = req.body;
       
