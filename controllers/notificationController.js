@@ -1,6 +1,5 @@
 const notificationService = require('../services/notificationService');
 
-// Register token FCM
 xports.registerToken = async (req, res) => {
   try {
       const { token } = req.body;
@@ -9,7 +8,6 @@ xports.registerToken = async (req, res) => {
           return res.status(400).json({ error: 'Token is required' });
       }
 
-      // Test the token before registering
       const testResult = await notificationService.testSingleToken(token, 'Welcome!', 'Your notifications are now active');
       
       if (testResult.success) {
@@ -47,7 +45,7 @@ exports.cleanupTokens = async (req, res) => {
   }
 };
 
-// Kirim test notification
+
 exports.sendTestNotification = async (req, res) => {
   try {
     const { title, body } = req.body;

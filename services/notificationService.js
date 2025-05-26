@@ -8,14 +8,12 @@ exports.registerDeviceToken = async (token) => {
             throw new Error('Token is required');
         }
 
-        // Validasi token format FCM
         if (!token.match(/^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$/)) {
             console.log('Token format validation passed');
         }
 
         const sanitizedToken = token.replace(/[.#$/[\]]/g, '_');
         
-        // Set with additional metadata for better tracking
         await db.ref('tokens').child(sanitizedToken).set({
             token: token,
             createdAt: admin.database.ServerValue.TIMESTAMP,
@@ -50,7 +48,6 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
     try {
         console.log('Starting notification send process...');
         
-        // Get all tokens
         const snapshot = await db.ref('tokens').once('value');
         const tokenData = [];
         const validTokens = [];
@@ -70,7 +67,6 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
 
         console.log(`Found ${validTokens.length} valid tokens`);
 
-        // Enhanced message structure
         const message = {
             notification: {
                 title: title,
@@ -112,8 +108,7 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
             }
         };
 
-        // Batch processing with better error handling
-        const BATCH_SIZE = 100; // Reduced batch size for better reliability
+        const BATCH_SIZE = 100; 
         let successCount = 0;
         let failedCount = 0;
         const invalidTokens = [];
