@@ -63,6 +63,32 @@ exports.getUserProfile = async (req, res) => {
     }
 };
 
+exports.getAllUserProfiles = async (req, res) => {
+    try {
+        const profilesRef = db.ref('profiles');
+        const snapshot = await profilesRef.once('value');
+
+        if (!snapshot.exists()) {
+            return res.status(200).json([]);
+        }
+
+        const profiles = snapshot.val();
+        const formattedProfiles = Object.entries(profiles).map(([id, profile]) => ({
+            id,
+            name: profile.name,
+            email: profile.email,
+            avatarUrl: profile.avatarUrl || null,
+            createdAt: formatTimestamp(profile.createdAt),
+            updatedAt: formatTimestamp(profile.updatedAt)
+        }));
+
+        res.status(200).json(formattedProfiles);
+    } catch (error) {
+        console.error('Get all user profiles error:', error);
+        res.status(500).json({ error: 'Failed to fetch user profiles' });
+    }
+};
+
 exports.updateUserProfile = async (req, res) => {
     try {
         const { currentName, newName, newEmail } = req.body;
