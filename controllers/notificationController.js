@@ -21,7 +21,7 @@ exports.registerToken = async (req, res) => {
 
         // Test the token
         try {
-            const testResult = await notificationService.testSingleToken(token, 'Welcome!', 'Your notifications are now active');
+            const testResult = await notificationService.testSingleToken(token, 'Welcome ges di WasteApp', 'Your notifications are now active yeyyyy');
             res.status(200).json({ 
                 success: true, 
                 message: 'Token registered and tested successfully',
