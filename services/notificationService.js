@@ -106,8 +106,7 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
                 ...(imageUrl && { fcm_options: { image: imageUrl } })
             }
         };
-
-        // Rest of the function remains the same...
+        
         const BATCH_SIZE = 100; 
         let successCount = 0;
         let failedCount = 0;
@@ -126,7 +125,6 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
 
                 const response = await admin.messaging().sendEach(messages);
                 
-                // Process responses
                 response.responses.forEach((resp, index) => {
                     if (resp.success) {
                         successCount++;
@@ -138,7 +136,6 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
                         console.log(`Failed to send to token: ${failedToken}`);
                         console.log(`Error: ${error.code} - ${error.message}`);
                         
-                        // Check if token is invalid and should be removed
                         if (error.code === 'messaging/invalid-registration-token' || 
                             error.code === 'messaging/registration-token-not-registered') {
                             invalidTokens.push(failedToken);
@@ -152,7 +149,6 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
                     }
                 });
 
-                // Add delay between batches to avoid rate limiting
                 if (i + BATCH_SIZE < validTokens.length) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
@@ -168,7 +164,6 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
             }
         }
 
-        // Cleanup invalid tokens
         if (invalidTokens.length > 0) {
             console.log(`Cleaning up ${invalidTokens.length} invalid tokens`);
             await exports.cleanupInvalidTokens(invalidTokens);

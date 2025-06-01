@@ -55,19 +55,57 @@ exports.getAllTransaksi = async (req, res) => {
 exports.getTransaksiByUser = async (req, res) => {
     try {
         const { email } = req.params;
-        const transaksi = await transaksiService.getTransaksiByUser(email);
+        const { transaksi, adjustedTotal } = await transaksiService.getTransaksiByUser(email);
         
-        const totalSemuaTransaksi = transaksi.reduce((total, t) => {
-            return total + (t.totalTransaksi || 0);
-        }, 0);
-
         res.status(200).json({
             transaksi: transaksi,
-            totalSemuaTransaksi: totalSemuaTransaksi,
+            totalSemuaTransaksi: adjustedTotal,
             jumlahTransaksi: transaksi.length
         });
     } catch (error) {
         console.error('Error fetching user transaksi:', error);
         res.status(500).json({ error: 'Gagal memuat transaksi pengguna' });
+    }
+};
+
+exports.updateUserBalance = async (req, res) => {
+    try {
+        const { email } = req.params;
+        const { newBalance } = req.body;
+
+        if (typeof newBalance !== 'number') {
+            return res.status(400).json({ error: 'Balance harus berupa angka' });
+        }
+
+        const result = await transaksiService.updateUserBalance(email, newBalance);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error updating user balance:', error);
+        res.status(500).json({ error: 'Gagal mengupdate saldo pengguna' });
+    }
+};
+
+exports.updateTotalTransaksi = async (req, res) => {
+    try {
+        const { email } = req.params;
+        const { balance } = req.body; 
+
+        if (typeof balance !== 'number') {
+            return res.status(400).json({ error: 'Balance harus berupa angka' });
+        }
+
+        const { adjustedTotal } = await transaksiService.getTransaksiByUser(email);
+        const updatedTotal = adjustedTotal - balance;
+
+        const result = await transaksiService.updateUserTransaksiTotal(email, updatedTotal);
+        res.status(200).json({
+            email,
+            previousTotal: adjustedTotal,
+            balanceAdjusted: balance,
+            newTotal: updatedTotal
+        });
+    } catch (error) {
+        console.error('Error updating total transaksi:', error);
+        res.status(500).json({ error: 'Gagal mengupdate total transaksi' });
     }
 };
