@@ -93,18 +93,12 @@ exports.updateTotalTransaksi = async (req, res) => {
         if (typeof balance !== 'number') {
             return res.status(400).json({ error: 'Balance harus berupa angka' });
         }
-
-        // Get current total first
         const { adjustedTotal } = await transaksiService.getTransaksiByUser(email);
-        
-        // Validate if balance is greater than current total
         if (balance > adjustedTotal) {
             return res.status(400).json({ 
                 error: 'Balance tidak boleh lebih besar dari total transaksi'
             });
         }
-
-        // Calculate new total by subtracting balance
         const updatedTotal = adjustedTotal - balance;
 
         const result = await transaksiService.updateUserTransaksiTotal(email, updatedTotal);
