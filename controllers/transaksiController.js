@@ -44,8 +44,8 @@ exports.createTransaksi = async (req, res) => {
 
 exports.getAllTransaksi = async (req, res) => {
     try {
-        const transaksi = await transaksiService.getAllTransaksi();
-        res.status(200).json(transaksi);
+        const results = await transaksiService.getAllTransaksi();
+        res.status(200).json(results);
     } catch (error) {
         console.error('Error fetching transaksi:', error);
         res.status(500).json({ error: 'Gagal memuat transaksi' });
@@ -55,16 +55,19 @@ exports.getAllTransaksi = async (req, res) => {
 exports.getTransaksiByUser = async (req, res) => {
     try {
         const { email } = req.params;
-        const { transaksi, adjustedTotal } = await transaksiService.getTransaksiByUser(email);
         
-        res.status(200).json({
-            transaksi: transaksi,
-            totalSemuaTransaksi: adjustedTotal,
-            jumlahTransaksi: transaksi.length
-        });
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const result = await transaksiService.getTransaksiByUser(email);
+        res.status(200).json(result);
     } catch (error) {
         console.error('Error fetching user transaksi:', error);
-        res.status(500).json({ error: 'Gagal memuat transaksi pengguna' });
+        res.status(500).json({ 
+            error: 'Gagal memuat transaksi pengguna',
+            message: error.message 
+        });
     }
 };
 
@@ -90,26 +93,39 @@ exports.updateTotalTransaksi = async (req, res) => {
         const { email } = req.params;
         const { balance } = req.body; 
 
-        if (typeof balance !== 'number') {
-            return res.status(400).json({ error: 'Balance harus berupa angka' });
+        if (typeof balance !== 'number' || isNaN(balance)) {
+            return res.status(400).json({ error: 'Balance harus berupa angka yang valid' });
         }
-        const { adjustedTotal } = await transaksiService.getTransaksiByUser(email);
-        if (balance > adjustedTotal) {
+
+        const result = await transaksiService.getTransaksiByUser(email);
+        const currentTotal = result.totalSemuaTransaksi;
+
+        if (balance > currentTotal) {
             return res.status(400).json({ 
                 error: 'Balance tidak boleh lebih besar dari total transaksi'
             });
         }
-        const updatedTotal = adjustedTotal - balance;
 
-        const result = await transaksiService.updateUserTransaksiTotal(email, updatedTotal);
+        const updatedTotal = Number((currentTotal - balance).toFixed(2));
+
+        if (isNaN(updatedTotal) || updatedTotal < 0) {
+            return res.status(400).json({ 
+                error: 'Perhitungan total tidak valid'
+            });
+        }
+
+        const updateResult = await transaksiService.updateUserTransaksiTotal(email, updatedTotal);
         res.status(200).json({
             email,
-            previousTotal: adjustedTotal,
+            previousTotal: currentTotal,
             balanceWithdrawn: balance,
             remainingTotal: updatedTotal
         });
     } catch (error) {
         console.error('Error updating total transaksi:', error);
-        res.status(500).json({ error: 'Gagal mengupdate total transaksi' });
+        res.status(500).json({ 
+            error: 'Gagal mengupdate total transaksi',
+            message: error.message 
+        });
     }
 };

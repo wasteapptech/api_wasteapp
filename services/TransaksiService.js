@@ -14,49 +14,85 @@ exports.createTransaksi = async (transaksiData) => {
     return { id: newTransaksiRef.key, ...dataToSave };
 };
 
+exports.calculateTransactionTotals = async (email) => {
+    const snapshot = await db.ref('transaksi')
+        .orderByChild('email')
+        .equalTo(email)
+        .once('value');
+
+    if (!snapshot.exists()) {
+        return {
+            transactions: [],
+            total: 0,
+            count: 0
+        };
+    }
+
+    const transactions = [];
+    let total = 0;
+
+    snapshot.forEach((childSnapshot) => {
+        const data = childSnapshot.val();
+        const transactionTotal = data.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+        
+        transactions.push({
+            id: childSnapshot.key,
+            ...data,
+            calculatedTotal: transactionTotal
+        });
+        
+        total += transactionTotal;
+    });
+
+    // Sort by date descending
+    transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return {
+        transactions,
+        total,
+        count: transactions.length,
+        lastTransaction: transactions[0] // Most recent transaction
+    };
+};
+
 exports.getAllTransaksi = async () => {
     const transaksiRef = db.ref('transaksi');
     const snapshot = await transaksiRef.once('value');
-    const transaksi = [];
+    const transactionsByEmail = {};
     
+    // First group all transactions by email
     snapshot.forEach((childSnapshot) => {
-        transaksi.push({
+        const transaction = {
             id: childSnapshot.key,
             ...childSnapshot.val()
-        });
+        };
+        
+        if (!transactionsByEmail[transaction.email]) {
+            transactionsByEmail[transaction.email] = [];
+        }
+        transactionsByEmail[transaction.email].push(transaction);
     });
-    
-    return transaksi;
+
+    const results = [];
+    for (const [email, transactions] of Object.entries(transactionsByEmail)) {
+        const userTotals = await exports.calculateTransactionTotals(email);
+        results.push({
+            lastTransaksi: userTotals.lastTransaction,
+            totalSemuaTransaksi: userTotals.total,
+            jumlahTransaksi: userTotals.count
+        });
+    }
+
+    return results;
 };
 
 exports.getTransaksiByUser = async (email) => {
-    const transaksiRef = db.ref('transaksi');
-    const userTotalRef = db.ref('userAdjustedTotals').child(email.replace('.', '_'));
-    
-    const [transaksiSnapshot, totalSnapshot] = await Promise.all([
-        transaksiRef.orderByChild('email').equalTo(email).once('value'),
-        userTotalRef.once('value')
-    ]);
-    
-    const transaksi = [];
-    transaksiSnapshot.forEach((childSnapshot) => {
-        transaksi.push({
-            id: childSnapshot.key,
-            ...childSnapshot.val()
-        });
-    });
-    
-    const adjustment = totalSnapshot.val()?.adjustment || 0;
-    const calculatedTotal = transaksi.reduce((total, t) => {
-        return total + (t.totalTransaksi || 0);
-    }, 0);
-    
-    const adjustedTotal = calculatedTotal + adjustment;
+    const totals = await exports.calculateTransactionTotals(email);
     
     return {
-        transaksi,
-        calculatedTotal,
-        adjustedTotal
+        transaksi: totals.transactions,
+        totalSemuaTransaksi: Number(totals.total.toFixed(2)),
+        jumlahTransaksi: totals.count
     };
 };
 
@@ -73,32 +109,21 @@ exports.getUserBalance = async (email) => {
     const userBalanceRef = db.ref('userBalances').child(email.replace('.', '_'));
     const snapshot = await userBalanceRef.once('value');
     return snapshot.val()?.balance || 0;
-};
-
-exports.updateTotalTransaksi = async (email, newTotal) => {
-    const userTotalRef = db.ref('userTotals').child(email.replace('.', '_'));
-    await userTotalRef.set({
-        totalTransaksi: newTotal,
-        updatedAt: new Date().toISOString()
-    });
-    return { email, totalTransaksi: newTotal };
-};
-
-exports.getUserTotal = async (email) => {
-    const userTotalRef = db.ref('userTotals').child(email.replace('.', '_'));
-    const snapshot = await userTotalRef.once('value');
-    return snapshot.val()?.totalTransaksi || 0;
-};
+};  
 
 exports.updateUserTransaksiTotal = async (email, newTotal) => {
-    const { calculatedTotal } = await exports.getTransaksiByUser(email);
-    
-    const adjustment = newTotal - calculatedTotal;
-    const userTotalRef = db.ref('userAdjustedTotals').child(email.replace('.', '_'));
-    await userTotalRef.set({
-        adjustment,
+    if (typeof newTotal !== 'number' || isNaN(newTotal)) {
+        throw new Error('Invalid total amount');
+    }
+
+    const userAdjustedTotalRef = db.ref('userAdjustedTotals').child(email.replace('.', '_'));
+    await userAdjustedTotalRef.set({
+        adjustedTotal: Number(newTotal.toFixed(2)), 
         updatedAt: new Date().toISOString()
     });
-    
-    return { success: true, newTotal };
+
+    return { 
+        email, 
+        newTotal: Number(newTotal.toFixed(2))
+    };
 };
