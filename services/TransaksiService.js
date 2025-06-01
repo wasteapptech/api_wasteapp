@@ -8,30 +8,28 @@ exports.createTransaksi = async (transaksiData) => {
     const newTransactionTotal = transaksiData.items.reduce((sum, item) => 
         sum + (Number(item.subtotal) || 0), 0);
 
-    // Get current user totals
-    const userTotals = await exports.calculateTransactionTotals(transaksiData.email);
+    // Get current adjusted total if exists
     const userAdjustedTotalRef = db.ref('userAdjustedTotals')
         .child(transaksiData.email.replace('.', '_'));
     const adjustedTotalSnapshot = await userAdjustedTotalRef.once('value');
     
-    // Calculate new total
     const currentAdjustedTotal = adjustedTotalSnapshot.exists() 
         ? adjustedTotalSnapshot.val().adjustedTotal 
-        : userTotals.total;
-    const newAdjustedTotal = Number((currentAdjustedTotal + newTransactionTotal).toFixed(2));
+        : 0;
     
-    // Save new transaction
+    const newTotal = Number((currentAdjustedTotal + newTransactionTotal).toFixed(2));
+    
     const timestamp = new Date().toISOString();
     const dataToSave = {
         ...transaksiData,
         createdAt: timestamp
     };
     
-    // Update both transaction and adjusted total atomically
+    // Update both transaction and adjusted total
     const updates = {
         [`/transaksi/${newTransaksiRef.key}`]: dataToSave,
         [`/userAdjustedTotals/${transaksiData.email.replace('.', '_')}`]: {
-            adjustedTotal: newAdjustedTotal,
+            adjustedTotal: newTotal,
             updatedAt: timestamp
         }
     };
@@ -41,8 +39,7 @@ exports.createTransaksi = async (transaksiData) => {
     return { 
         id: newTransaksiRef.key, 
         ...dataToSave,
-        totalSemuaTransaksi: userTotals.total + newTransactionTotal,
-        balanceNow: newAdjustedTotal
+        totalSemuaTransaksi: newTotal
     };
 };
 
@@ -96,11 +93,15 @@ exports.calculateTransactionTotals = async (email) => {
 
 exports.getAllTransaksi = async () => {
     const transaksiRef = db.ref('transaksi');
-    const snapshot = await transaksiRef.once('value');
+    const userAdjustedTotalsRef = db.ref('userAdjustedTotals');
+    const [transactionSnapshot, adjustedTotalsSnapshot] = await Promise.all([
+        transaksiRef.once('value'),
+        userAdjustedTotalsRef.once('value')
+    ]);
+    
     const transactionsByEmail = {};
     
-    // First group all transactions by email
-    snapshot.forEach((childSnapshot) => {
+    transactionSnapshot.forEach((childSnapshot) => {
         const transaction = {
             id: childSnapshot.key,
             ...childSnapshot.val()
@@ -115,19 +116,16 @@ exports.getAllTransaksi = async () => {
     const results = [];
     for (const [email, transactions] of Object.entries(transactionsByEmail)) {
         const userTotals = await exports.calculateTransactionTotals(email);
-        const userAdjustedTotalRef = db.ref('userAdjustedTotals').child(email.replace('.', '_'));
-        const adjustedTotalSnapshot = await userAdjustedTotalRef.once('value');
-        const adjustedTotal = adjustedTotalSnapshot.exists() ? 
-            adjustedTotalSnapshot.val().adjustedTotal : 
-            userTotals.total;
-        
+        const adjustedTotal = adjustedTotalsSnapshot.child(email.replace('.', '_')).exists() 
+            ? adjustedTotalsSnapshot.child(email.replace('.', '_')).val().adjustedTotal
+            : userTotals.total;
+
         results.push({
             id: userTotals.lastTransaction.id,
             createdAt: userTotals.lastTransaction.createdAt,
             email: userTotals.lastTransaction.email,
             username: userTotals.lastTransaction.username,
-            totalSemuaTransaksi: userTotals.total,
-            balanceNow: adjustedTotal,
+            totalSemuaTransaksi: adjustedTotal,
             jumlahTransaksi: userTotals.count
         });
     }
@@ -140,32 +138,16 @@ exports.getTransaksiByUser = async (email) => {
     const userAdjustedTotalRef = db.ref('userAdjustedTotals').child(email.replace('.', '_'));
     const adjustedTotalSnapshot = await userAdjustedTotalRef.once('value');
     
-    const adjustedTotal = adjustedTotalSnapshot.exists() ? 
-        adjustedTotalSnapshot.val().adjustedTotal : 
-        totals.total;
+    const adjustedTotal = adjustedTotalSnapshot.exists() 
+        ? adjustedTotalSnapshot.val().adjustedTotal 
+        : totals.total;
 
     return {
         transaksi: totals.transactions,
-        totalSemuaTransaksi: totals.total,
-        balanceNow: adjustedTotal,
+        totalSemuaTransaksi: adjustedTotal,
         jumlahTransaksi: totals.count
     };
 };
-
-exports.updateUserBalance = async (email, newBalance) => {
-    const userBalanceRef = db.ref('userBalances').child(email.replace('.', '_'));
-    await userBalanceRef.set({
-        balance: newBalance,
-        updatedAt: new Date().toISOString()
-    });
-    return { email, balance: newBalance };
-};
-
-exports.getUserBalance = async (email) => {
-    const userBalanceRef = db.ref('userBalances').child(email.replace('.', '_'));
-    const snapshot = await userBalanceRef.once('value');
-    return snapshot.val()?.balance || 0;
-};  
 
 exports.updateUserTransaksiTotal = async (email, newTotal) => {
     if (typeof newTotal !== 'number' || isNaN(newTotal)) {
@@ -182,7 +164,9 @@ exports.updateUserTransaksiTotal = async (email, newTotal) => {
 
     return { 
         email, 
-        newTotal: formattedTotal,
-        balanceNow: formattedTotal
+        totalSemuaTransaksi: formattedTotal
     };
 };
+
+// Remove or comment out getUserBalance and updateUserBalance if not needed
+// ...rest of existing code...
