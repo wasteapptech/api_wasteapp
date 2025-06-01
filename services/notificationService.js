@@ -192,16 +192,25 @@ exports.sendNotificationToAllDevices = async (title, body, imageUrl = null, type
     }
 };
 
-exports.testSingleToken = async (token, title = 'Test', body = 'Test notification') => {
+exports.testSingleToken = async (token, title = 'Test', body = 'Test notification', imageUrl = null) => {
     try {
         const message = {
             token: token,
             notification: {
                 title: title,
-                body: body
+                body: body,
+                ...(imageUrl && { image: imageUrl })
+            },
+            data: {
+                type: 'welcome',
+                ...(imageUrl && { image_url: imageUrl }),
+                click_action: 'FLUTTER_NOTIFICATION_CLICK',
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString()
             },
             android: {
                 notification: {
+                    ...(imageUrl && { imageUrl: imageUrl }),
                     priority: 'high',
                     channel_id: 'wasteapp_channel',
                     sound: 'default'
@@ -217,7 +226,8 @@ exports.testSingleToken = async (token, title = 'Test', body = 'Test notificatio
                         },
                         sound: 'default'
                     }
-                }
+                },
+                ...(imageUrl && { fcm_options: { image: imageUrl } })
             }
         };
 

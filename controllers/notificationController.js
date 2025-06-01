@@ -18,7 +18,13 @@ exports.registerToken = async (req, res) => {
         }
 
         try {
-            const testResult = await notificationService.testSingleToken(token, 'Welcome ges di WasteApp', 'Your notifications are now active yeyyyy');
+            const welcomeImageUrl = "https://res.cloudinary.com/dljgctufu/image/upload/v1748771332/survey_vkufm1.png"; 
+            const testResult = await notificationService.testSingleToken(
+                token, 
+                'Welcome ges di WasteApp', 
+                'Your notifications are now active yeyyyy',
+                welcomeImageUrl
+            );
             res.status(200).json({
                 success: true,
                 message: 'Token registered and tested successfully',
