@@ -35,7 +35,12 @@ exports.createTransaksi = async (req, res) => {
         };
 
         const result = await transaksiService.createTransaksi(transaksiData);
-        res.status(201).json(result);
+        
+        // Return updated response with new totals
+        res.status(201).json({
+            ...result,
+            message: 'Transaksi berhasil dibuat dan total diperbarui'
+        });
     } catch (error) {
         console.error('Error creating transaksi:', error);
         res.status(500).json({ error: 'Gagal membuat transaksi' });
