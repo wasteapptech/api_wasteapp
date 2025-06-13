@@ -8,20 +8,20 @@ exports.postSensorData = async (req, res) => {
             return res.status(400).json({ error: 'Data sensor tidak lengkap' });
         }
 
-        // Validate sensor data based on type
+
         let isValidData = false;
         switch (nameSensor.toLowerCase()) {
             case 'mq4':
-                isValidData = value > 600; // PPM threshold
+                isValidData = value > 600; 
                 break;
             case 'dht-temp':
-                isValidData = value > 30; // Temperature threshold in Celsius
+                isValidData = value > 30; 
                 break;
             case 'dht-humidity':
-                isValidData = value > 50; // Humidity threshold in percentage
+                isValidData = value > 50;
                 break;
-            case 'infrared':
-                isValidData = value >= 100; // Capacity threshold in percentage
+            case 'ultrasonic':
+                isValidData = value >= 100;
                 break;
             default:
                 return res.status(400).json({ error: 'Tipe sensor tidak valid' });
