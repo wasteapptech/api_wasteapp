@@ -11,7 +11,10 @@ const hargaRoutes = require('./routes/harga');
 const newsRoutes = require('./routes/news');
 const hargaService = require('./services/HargaService');
 const transaksiRoutes = require('./routes/transaksi');
+const sensorRoutes = require('./routes/sensorRoutes');
 const notificationRoutes = require('./routes/notification');
+
+
 const app = express();
 app.use(express.json());
 app.use((req, res, next) => {
@@ -39,6 +42,8 @@ app.use('/api/news', newsRoutes);
 app.use('/api/notification', notificationRoutes);
 app.use('/api/harga', hargaRoutes);
 app.use('/api/transaksi', transaksiRoutes);
+app.use('/api/sensor', sensorRoutes);
+
 
 
 app.use((req, res, next) => {

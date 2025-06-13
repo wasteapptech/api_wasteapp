@@ -11,12 +11,9 @@ exports.submitSurvey = async (req, res) => {
 
         const surveysRef = db.ref('surveys');
         const timestamp = getCurrentTimestamp();
-
-        // Check if survey exists
         const snapshot = await surveysRef.orderByChild('email').equalTo(email).once('value');
         
         if (snapshot.exists()) {
-            // Update existing survey
             const surveyData = snapshot.val();
             const surveyId = Object.keys(surveyData)[0];
             
@@ -26,7 +23,7 @@ exports.submitSurvey = async (req, res) => {
                 updatedAt: timestamp
             });
         } else {
-            // Create new survey
+
             const newSurveyRef = surveysRef.push();
             await newSurveyRef.set({
                 email,
