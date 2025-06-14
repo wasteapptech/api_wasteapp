@@ -20,7 +20,10 @@ exports.postSensorData = async (req, res) => {
             case 'dht-humidity':
                 isValidData = value > 50;
                 break;
-            case 'ultrasonic':
+            case 'ultrasonic1':
+                isValidData = value >= 100;
+                break;
+            case 'ultrasonic2':
                 isValidData = value >= 100;
                 break;
             default:
