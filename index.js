@@ -5,7 +5,6 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const surveyRoutes = require('./routes/survey');
 const adminRoutes = require("./routes/admin");
-const { initCronJobs } = require('./utils/cronJobs');
 const kegiatanRoutes = require('./routes/kegiatan');
 const hargaRoutes = require('./routes/harga');
 const newsRoutes = require('./routes/news');
