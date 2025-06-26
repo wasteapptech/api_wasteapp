@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { load } = require('cheerio');
+const cheerio = require('cheerio');
 const { db } = require('../config/firebase'); 
 const notificationService = require('./notificationService');
 
@@ -8,7 +8,7 @@ const scrapeDetikSampahArticles = async () => {
     try {
         const url = 'https://www.detik.com/tag/sampah';
         const response = await axios.get(url);
-        const $ = load(response.data);
+        const $ = cheerio.load(response.data);
 
         const articles = [];
 
