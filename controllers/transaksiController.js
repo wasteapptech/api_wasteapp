@@ -1,5 +1,7 @@
 const transaksiService = require('../services/TransaksiService');
 const hargaService = require('../services/HargaService');
+const { db } = require('../config/firebase');
+const { formatTimestamp } = require('../utils/datetimeHelper');
 
 exports.createTransaksi = async (req, res) => {
     try {
@@ -36,7 +38,6 @@ exports.createTransaksi = async (req, res) => {
 
         const result = await transaksiService.createTransaksi(transaksiData);
         
-        // Return updated response with new totals
         res.status(201).json({
             ...result,
             message: 'Transaksi berhasil dibuat dan total diperbarui'
@@ -60,19 +61,38 @@ exports.getAllTransaksi = async (req, res) => {
 exports.getTransaksiByUser = async (req, res) => {
     try {
         const { email } = req.params;
-        
         if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
+            return res.status(400).json({ error: 'Email parameter is required' });
+        }
+        const profilesRef = db.ref('profiles');
+        const profileSnapshot = await profilesRef.orderByChild('email').equalTo(email).once('value');
+        
+        if (!profileSnapshot.exists()) {
+            return res.status(404).json({ error: 'User profile not found' });
         }
 
-        const result = await transaksiService.getTransaksiByUser(email);
-        res.status(200).json(result);
+        const profileData = profileSnapshot.val();
+        const userProfile = Object.values(profileData)[0];
+
+        const transactionData = await transaksiService.getTransaksiByUser(email);
+
+        const response = {
+            userInfo: {
+                name: userProfile.name,
+                email: userProfile.email,
+                avatarUrl: userProfile.avatarUrl || null
+            },
+            transactionSummary: {
+                totalTransactions: transactionData.jumlahTransaksi,
+                totalSemuaTransaksi: transactionData.totalSemuaTransaksi
+            },
+            transactions: transactionData.transaksi
+        };
+
+        res.status(200).json(response);
     } catch (error) {
-        console.error('Error fetching user transaksi:', error);
-        res.status(500).json({ 
-            error: 'Gagal memuat transaksi pengguna',
-            message: error.message 
-        });
+        console.error('Get transactions by user error:', error);
+        res.status(500).json({ error: 'Failed to fetch transactions', details: error.message });
     }
 };
 
