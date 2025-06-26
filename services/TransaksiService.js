@@ -168,5 +168,3 @@ exports.updateUserTransaksiTotal = async (email, newTotal) => {
     };
 };
 
-// Remove or comment out getUserBalance and updateUserBalance if not needed
-// ...rest of existing code...
